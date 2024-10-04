@@ -59,7 +59,7 @@ tasks:
   terraform-tfvars:
     aliases: ["tfv"]
     dir: .
-    cmd: sed '/image_family.*/d' variables.pkrvars.hcl > tf/terraform.tfvars
+    cmd: sed '/image_family.*/d' variables.pkrvars.hcl | sed 's/^gcp_//' > tf/terraform.tfvars
 
   terraform-init:
     dir: tf
