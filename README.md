@@ -10,6 +10,8 @@ Before you begin, ensure you have the following tools installed:
 
 - [Google Cloud CLI (gcloud)](https://cloud.google.com/sdk/docs/install)
 - [HashiCorp Packer](https://developer.hashicorp.com/packer/tutorials/docker-get-started/get-started-install-cli)
+- [HashiCorp Terraform](https://developer.hashicorp.com/terraform/install)
+- [Task](https://taskfile.dev/installation/)
 - **Nomad License File**
 - **Consul License File**
 
