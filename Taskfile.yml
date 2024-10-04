@@ -19,6 +19,7 @@ tasks:
   apply:
     desc: Deploy infrastructure
     cmds:
+      - task: terraform-tfvars
       - task: terraform-init
       - task: terraform-apply
 
@@ -54,6 +55,11 @@ tasks:
 
   packer-consul-server:
     cmd: packer build -var-file=variables.pkrvars.hcl packer/gcp-almalinux-consul-server.pkr.hcl
+
+  terraform-tfvars:
+    aliases: ["tfv"]
+    dir: .
+    cmd: sed '/image_family.*/d' variables.pkrvars.hcl > tf/terraform.tfvars
 
   terraform-init:
     dir: tf
