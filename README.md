@@ -59,7 +59,12 @@ The script will prompt you for your GCP project ID, region, and other details. B
 
 Once variables are set, you can use **Packer** to build the **Nomad** server and client images. To update the version of **Nomad** or **Consul**, modify the `NOMAD_VERSION` and `CONSUL_VERSION` in the [provision-nomad.sh](./packer/scripts/provision-nomad.sh) & [provision-consul.sh](./packer/scripts/provision-consul.sh) scripts.
 
-You can run both builds simultaneously using `./build-packer.sh`, or manually with the following commands:
+The fastest way to do this is to issue the following command:
+```bash
+task packer
+```
+
+Alternatively, you can run both builds simultaneously using `./build-packer.sh`, or manually with the following commands:
 
 ```bash
 # Initialize Packer
@@ -80,6 +85,12 @@ packer build -var-file=variables.pkrvars.hcl packer/gcp-almalinux-consul-server.
 ## Step 4: Provision Nomad Cluster with Terraform
 
 You can now use Terraform to provision a **Nomad** cluster. This example creates a 3-node Nomad server cluster with an additional Nomad client node. The `terraform.tfvars` file is generated from the original `variables.pkrvars.hcl` used during the Packer build.
+
+The fastest way to do this is to issue the following command:
+```bash
+task apply
+```
+Otherwise, this can be performed by using the following commands:
 
 ```bash
 # Create tfvars from pkrvars and provision the cluster
