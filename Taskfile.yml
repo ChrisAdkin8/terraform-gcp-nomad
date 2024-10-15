@@ -19,7 +19,7 @@ tasks:
   apply:
     desc: Deploy infrastructure
     cmds:
-      - task: terraform-tfvars
+#      - task: terraform-tfvars
       - task: terraform-init
       - task: terraform-apply
 
@@ -59,7 +59,7 @@ tasks:
   terraform-tfvars:
     aliases: ["tfv"]
     dir: .
-    cmd: sed '/image_family.*/d' variables.pkrvars.hcl | sed 's/^gcp_//' > tf/terraform.tfvars
+    cmd: sed '/image_family.*/d' variables.pkrvars.hcl | grep project | sed 's/^gcp_//' > tf/terraform.tfvars
 
   terraform-init:
     dir: tf
