@@ -15,6 +15,14 @@ Before you begin, ensure you have the following tools installed:
 - **Nomad License File**
 - **Consul License File**
 
+Optionally if you wish to deploy the entire infrastructure with a single command:
+
+```
+task all
+```
+
+this can be carried out via [go-task](https://github.com/go-task/task).
+
 ## Step 1: Authenticate with GCP
 
 Authenticate your GCP account and configure the project you want to use:
