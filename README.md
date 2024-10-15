@@ -45,7 +45,14 @@ Ensure both license files are present before building your images.
 
 ## Step 3: Build Disk Images with Packer
 
-### Set Packer Variables
+### Go Task Method
+```
+task packer
+```
+
+### Manual Method
+
+#### Set Packer Variables
 
 Use the provided script to configure necessary variables for the Packer build:
 
@@ -55,7 +62,7 @@ sh packer/set-vars.sh
 
 The script will prompt you for your GCP project ID, region, and other details. By default, it uses **London (europe-west2)** as the region. Modify this if needed during execution.
 
-### Build the Images
+#### Build the Images
 
 Once variables are set, you can use **Packer** to build the **Nomad** server and client images. To update the version of **Nomad** or **Consul**, modify the `NOMAD_VERSION` and `CONSUL_VERSION` in the [provision-nomad.sh](./packer/scripts/provision-nomad.sh) & [provision-consul.sh](./packer/scripts/provision-consul.sh) scripts.
 
