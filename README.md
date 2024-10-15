@@ -8,6 +8,8 @@ This guide outlines how to deploy **Nomad** and **Consul** on **Google Cloud Pla
 
 Before you begin, ensure you have the following tools installed:
 
+- [Terraform community edition](https://developer.hashicorp.com/terraform/install)
+- [Nomad Pack](https://developer.hashicorp.com/nomad/tutorials/nomad-pack/nomad-pack-intro)
 - [Google Cloud CLI (gcloud)](https://cloud.google.com/sdk/docs/install)
 - [HashiCorp Packer](https://developer.hashicorp.com/packer/tutorials/docker-get-started/get-started-install-cli)
 - **Nomad License File**
