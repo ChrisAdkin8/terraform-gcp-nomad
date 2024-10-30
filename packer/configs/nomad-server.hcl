@@ -4,7 +4,7 @@ region                = "__REGION__"
 
 bind_addr             = "0.0.0.0"
 
-log_level             = "INFO"
+log_level             = "TRACE"
 log_file              = "/var/log/"
 log_rotate_duration   = "24h"
 log_rotate_max_files  = 5

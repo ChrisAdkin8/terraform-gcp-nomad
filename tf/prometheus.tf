@@ -90,4 +90,6 @@ resource "null_resource" "autoscaler" {
   provisioner "local-exec" {
     command = "nomad-pack list && nomad-pack run nomad_autoscaler --registry=community --parser-v1"
   }
+
+  depends_on = [ nomad_job.prometheus ]
 }

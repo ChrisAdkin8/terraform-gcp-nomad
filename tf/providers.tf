@@ -4,6 +4,6 @@ provider "google" {
 }
 
 provider "nomad" {
-  address = "http://${module.nomad.fqdn}:4646" #local.nomad_url
+  address = "http://${module.nomad.fqdn}:4646"
   region  = var.region
 }

@@ -58,13 +58,6 @@ output "secondary_nomad_url" {
   description = "URL of the Nomad server"
 }
 
-# output "nomad_join" {
-#   value       = !var.create_secondary_nomad_cluster ? null : <<EOF
-# gcloud compute ssh ${try(module.secondary_nomad.names[0], "")} --zone ${data.google_compute_zones.secondary.names[0]} --tunnel-through-iap -- "nomad server join ${module.nomad.internal_server_ips[0]}; nomad server members"
-# EOF
-#   description = "Nomad join command"
-# }
-
 output "env_vars" {
   value       = <<EOF
 export CONSUL_HTTP_ADDR=${module.consul.fqdn}:8500
