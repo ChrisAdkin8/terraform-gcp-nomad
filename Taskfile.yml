@@ -24,7 +24,7 @@ tasks:
       - task: terraform-apply
 
   destroy:
-    desc: Deploy infrastructure
+    desc: Destroy infrastructure
     cmds:
       - task: terraform-destroy
 
