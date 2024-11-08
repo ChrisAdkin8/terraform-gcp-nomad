@@ -26,3 +26,7 @@ telemetry {
     prometheus_retention_time   = "480h"
     disable_hostname            = true
 }
+
+connect {
+  enabled = true
+}
