@@ -18,6 +18,9 @@ dnf install -y \
 mkdir /opt/cni
 ln -s /usr/libexec/cni /opt/cni/bin
 
+# Create a directory for a host volume
+mkdir -p /opt/nomad/hv001
+
 systemctl enable docker
 
 # Setup JAVA_HOME
