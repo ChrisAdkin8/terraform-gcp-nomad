@@ -34,3 +34,8 @@ consul {
   server_auto_join    = true
   client_auto_join    = true
 }
+
+host_volume "hv001" {
+  path      = "/opt/nomad/hv001"
+  read_only = false
+}
