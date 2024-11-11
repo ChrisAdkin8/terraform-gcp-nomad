@@ -50,6 +50,9 @@ sudo cp /tmp/consul.hcl /etc/consul.d/consul.hcl
 sudo cp /tmp/nomad.hclic /etc/nomad.d/license.hclic
 sudo cp /tmp/consul.hclic /etc/consul.d/license.hclic
 
+# Create host volume directory
+sudo mkdir -p /opt/nomad/hv001
+
 # Enable Services to start at boot
 sudo systemctl enable nomad
 sudo systemctl enable consul
