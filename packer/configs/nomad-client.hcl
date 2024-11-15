@@ -16,12 +16,18 @@ server {
 
 client {
   enabled             = true
+
+  host_volume "hv001" {
+    path      = "/opt/nomad/hv001"
+    read_only = false
+  }
 }
 
 plugin "docker" {
   config {
     allow_privileged = true
   }
+  docker.volumes.enabled = true
 }
 
 plugin "raw_exec" {
@@ -41,9 +47,4 @@ consul {
   auto_advertise      = true
   server_auto_join    = true
   client_auto_join    = true
-}
-
-host_volume "hv001" {
-  path      = "/opt/nomad/hv001"
-  read_only = false
 }

@@ -48,6 +48,11 @@ output "nomad_url" {
   description = "URL of the Nomad server"
 }
 
+output "nomad_lb_ipaddress" {
+  value       = "${module.nomad.load_balancer_ip}"
+  description = "Public ip address for nomad client GCP MIG"
+}
+
 output "secondary_consul_url" {
   value       = var.create_secondary_consul_cluster ? "http://${module.secondary_consul.fqdn}:8500" : null
   description = "URL of the Consul server"

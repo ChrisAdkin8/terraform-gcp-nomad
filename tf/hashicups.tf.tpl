@@ -106,7 +106,7 @@ job "hashicups" {
         service = "database"
       }
       config {
-        image   = "hashicorpdemoapp/product-api-db:${var.product_api_db_version}"
+        image   = "hashicorpdemoapp/product-api-db:$${var.product_api_db_version}"
         ports = ["db"]
       }
       env {
@@ -139,13 +139,13 @@ job "hashicups" {
         service = "product-api"
       }
       config {
-        image   = "hashicorpdemoapp/product-api:${var.product_api_version}"
+        image   = "hashicorpdemoapp/product-api:$${var.product_api_version}"
         ports = ["product-api"]
       }
       template {
         data        = <<EOH
 {{ range service "database" }}
-DB_CONNECTION="host={{ .Address }} port={{ .Port }} user=${var.postgres_user} password=${var.postgres_password} dbname=${var.postgres_db} sslmode=disable"
+DB_CONNECTION="host={{ .Address }} port={{ .Port }} user=$${var.postgres_user} password=$${var.postgres_password} dbname=$${var.postgres_db} sslmode=disable"
 BIND_ADDRESS = "{{ env "NOMAD_IP_product-api" }}:{{ env "NOMAD_PORT_product-api" }}"
 {{ end }}
 EOH
@@ -188,7 +188,7 @@ EOH
         env         = true
       }
       config {
-        image   = "hashicorpdemoapp/frontend:${var.frontend_version}"
+        image   = "hashicorpdemoapp/frontend:$${var.frontend_version}"
         ports = ["frontend"]
       }
     }
@@ -216,7 +216,7 @@ EOH
         service = "payments-api"
       }
       config {
-        image   = "hashicorpdemoapp/payments:${var.payments_version}"
+        image   = "hashicorpdemoapp/payments:$${var.payments_version}"
         ports = ["payments-api"]
       }
       template {
@@ -251,12 +251,12 @@ EOH
         service = "public-api"
       }
       config {
-        image   = "hashicorpdemoapp/public-api:${var.public_api_version}"
+        image   = "hashicorpdemoapp/public-api:$${var.public_api_version}"
         ports = ["public-api"] 
       }
       template {
         data        = <<EOH
-BIND_ADDRESS = ":${var.public_api_port}"
+BIND_ADDRESS = ":$${var.public_api_port}"
 {{ range service "product-api" }}
 PRODUCT_API_URI = "http://{{ .Address }}:{{ .Port }}"
 {{ end }}

@@ -49,7 +49,6 @@ resource "google_compute_region_instance_group_manager" "nomad_client" {
   base_instance_name = "${var.name_prefix}-nomad-client"
   region             = var.region
   target_size        = var.nomad_client_instances
-  #   target_pools       = google_compute_target_pool.nomad_client[*].id
 
   version {
     name              = "${var.name_prefix}-nomad-client"

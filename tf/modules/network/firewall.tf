@@ -22,19 +22,6 @@ resource "google_compute_firewall" "iap_ssh" {
   }
 }
 
-# resource "google_compute_firewall" "lb_hc" {
-#   name          = "${var.name_prefix}-lb-hc"
-#   network       = google_compute_network.default.name
-#   direction     = "INGRESS"
-#   source_ranges = data.google_netblock_ip_ranges.lb.cidr_blocks
-#   target_tags   = ["consul-server", "nomad-server"]
-#
-#   allow {
-#     protocol = "tcp"
-#     ports    = ["4646", "8500"]
-#   }
-# }
-
 resource "google_compute_firewall" "consul_mgmt" {
   name    = "${var.name_prefix}-consul-mgmt-ingress"
   network = google_compute_network.default.name
@@ -49,21 +36,6 @@ resource "google_compute_firewall" "consul_mgmt" {
   target_tags = ["consul-server"]
 }
 
-# resource "google_compute_firewall" "consul_server" {
-#   name    = "${local.name_prefix}-consul-server-ingress"
-#   network = google_compute_network.default.name
-#
-#   allow {
-#     protocol = "tcp"
-#     ports    = ["8500", "8301"]
-#   }
-#
-#   source_ranges = [google_compute_subnetwork.default.ip_cidr_range]
-#
-#   target_tags = ["consul-server"]
-# }
-
-
 resource "google_compute_firewall" "nomad_mgmt" {
   name    = "${var.name_prefix}-nomad-mgmt-ingress"
   network = google_compute_network.default.name
@@ -77,20 +49,6 @@ resource "google_compute_firewall" "nomad_mgmt" {
 
   target_tags = ["nomad-server"]
 }
-
-# resource "google_compute_firewall" "nomad_server" {
-#   name    = "${local.name_prefix}-nomad-server-ingress"
-#   network = google_compute_network.default.name
-#
-#   allow {
-#     protocol = "tcp"
-#     ports    = ["4646"]
-#   }
-#
-#   source_ranges = [google_compute_subnetwork.default.ip_cidr_range]
-#
-#   target_tags = ["nomad-server"]
-# }
 
 resource "google_compute_firewall" "nomad_consul" {
   name    = "${var.name_prefix}-nomad-consul-ingress"
