@@ -1,23 +1,3 @@
-module "nomad" {
-  source = "./modules/nomad"
-
-  create_nomad_cluster   = var.create_nomad_cluster
-  datacenter             = var.datacenter
-  gcs_bucket             = google_storage_bucket.default.name
-  name_prefix            = local.name_prefix
-  nomad_client_instances = var.nomad_client_instances
-  nomad_server_instances = var.nomad_server_instances
-  project_id             = var.project_id
-  region                 = var.region
-  subnet_self_link       = module.network.subnet_self_link
-  zone                   = data.google_compute_zones.default.names[0]
-
-  depends_on = [
-    module.network,
-    module.consul
-  ]
-}
-
 module "secondary_nomad" {
   source = "./modules/nomad"
 
@@ -31,10 +11,43 @@ module "secondary_nomad" {
   region                 = var.secondary_region
   subnet_self_link       = module.network.secondary_subnet_self_link
   zone                   = data.google_compute_zones.secondary.names[0]
+  cluster_prefix         = "secondary"  
 
   depends_on = [
     module.network,
     module.secondary_consul
+  ]
+}
+
+module "nomad" {
+  source = "./modules/nomad"
+
+  create_nomad_cluster   = var.create_nomad_cluster
+  datacenter             = var.datacenter
+  gcs_bucket             = google_storage_bucket.default.name
+  name_prefix            = local.name_prefix
+  nomad_client_instances = var.nomad_client_instances
+  nomad_server_instances = var.nomad_server_instances
+  project_id             = var.project_id
+  region                 = var.region
+  subnet_self_link       = module.network.subnet_self_link
+  zone                   = data.google_compute_zones.default.names[0]
+  cluster_prefix         = "primary"
+
+  depends_on = [
+    module.network,
+    module.consul
+  ]
+}
+
+module "jobs" {
+  source     = "./modules/jobs"
+
+  nomad_addr = "http://${module.nomad.fqdn}:4646"
+
+  depends_on = [
+     module.nomad
+    ,null_resource.wait_for_nomad_api
   ]
 }
 

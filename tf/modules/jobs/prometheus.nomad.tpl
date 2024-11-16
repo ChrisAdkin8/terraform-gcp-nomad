@@ -1,5 +1,3 @@
-resource "nomad_job" "prometheus" {
-  jobspec = <<EOF
 job "prometheus" {
   datacenters = ["dc1"]
   type        = "service"
@@ -82,24 +80,4 @@ EOH
       }
     }
   }
-}
-EOF
-}
-
-resource "null_resource" "autoscaler" {
-  provisioner "local-exec" {
-    command = "export NOMAD_ADDR=$NA && nomad-pack list && nomad-pack run nomad_autoscaler --registry=community --parser-v1"
-  
-    environment = {
-        NA = "http://${module.nomad.fqdn}:4646"
-    }
-  }
-  
-  depends_on = [ nomad_job.prometheus ]
-}
-
-resource "nomad_job" "hashicups" {
-  jobspec = templatefile("${path.module}/hashicups.tf.tpl",  {
-    dummy = "dummy"
-  })
 }
