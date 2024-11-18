@@ -28,5 +28,5 @@ telemetry {
 }
 
 connect {
-  enabled = true
+  enabled = false
 }

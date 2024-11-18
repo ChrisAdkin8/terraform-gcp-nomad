@@ -131,7 +131,3 @@ variable "nomad_client_disk_size" {
   description = "The disk size to use for Nomad clients"
   default     = 20
 }
-variable "cluster_prefix" {
-  description = "Nomad cluster prefix"
-  default     = "primary"
-}

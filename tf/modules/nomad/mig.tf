@@ -50,6 +50,15 @@ resource "google_compute_region_instance_group_manager" "nomad_client" {
   region             = var.region
   target_size        = var.nomad_client_instances
 
+  named_port {
+    name = "traefikconsole"
+    port = 8080
+  }
+  named_port {
+    name = "traefikapi"
+    port = 8081
+  } 
+
   version {
     name              = "${var.name_prefix}-nomad-client"
     instance_template = google_compute_instance_template.nomad_client[0].id
