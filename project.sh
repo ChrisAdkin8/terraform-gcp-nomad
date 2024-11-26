@@ -5,7 +5,7 @@ gcloud auth login
 PROJECT_ID=$(gcloud config get-value project)
 
 # Update terraform.tfvars with the Project ID
-echo "gcp_project_id="\"$PROJECT_ID\" > tf/terraform.tfvars
+echo "project_id="\"$PROJECT_ID\" > tf/terraform.tfvars
 
 # Default region to London
 gcp_region="europe-west2"
