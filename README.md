@@ -45,13 +45,6 @@ Ensure both license files are present before building your images.
 
 ## Step 3: Build Disk Images with Packer
 
-### Go Task Method
-```
-task packer
-```
-
-### Manual Method
-
 #### Set Packer Variables
 
 Use the provided script to configure necessary variables for the Packer build:
@@ -60,6 +53,13 @@ sh packer/set-vars.sh
 ```
 
 The script will prompt you for your GCP project ID, region, and other details. By default, it uses **London (europe-west2)** as the region. Modify this if needed during execution.
+
+### Go Task Method
+```
+task packer
+```
+
+### Manual Method
 
 #### Build the Images
 
