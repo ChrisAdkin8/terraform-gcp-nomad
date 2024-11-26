@@ -17,20 +17,15 @@ Before you begin, ensure you have the following tools installed:
 
 ## Step 1: Authenticate with GCP
 
-Authenticate your GCP account and configure the project you want to use:
-
+Invoke the following script:
 ```bash
-# Authenticate your GCP account with application-default
-gcloud auth application-default login
-
-# Authenticate your GCP account with application-default
-gcloud auth login
-
-# Set your Google Cloud project ID
-gcloud config set project <PROJECT_ID>
+./project.sh
 ```
-
-Replace `<PROJECT_ID>` with your GCP project ID.
+The script:
+- Authenticates you for Google Cloud SDK and tools
+- Authenticates your application with Application Default Credentials (ADC)
+- Adds the GCP Project Id to the `packer/variables.pkr.hcl` file
+- Refreshes the `tf/terraform.tfvars` file with the GCP Project Id
 
 ## Step 2: Set Up License Files
 
@@ -44,15 +39,6 @@ cp ~/Downloads/consul.hclic .
 Ensure both license files are present before building your images.
 
 ## Step 3: Build Disk Images with Packer
-
-#### Set Packer Variables
-
-Use the provided script to configure necessary variables for the Packer build:
-```bash
-sh packer/set-vars.sh
-```
-
-The script will prompt you for your GCP project ID, region, and other details. By default, it uses **London (europe-west2)** as the region. Modify this if needed during execution.
 
 ### Go Task Method
 ```
