@@ -27,6 +27,14 @@ The script:
 - Adds the GCP Project Id to the `packer/variables.pkr.hcl` file
 - Refreshes the `tf/terraform.tfvars` file with the GCP Project Id
 
+Note:
+
+- The current project can be obtained using:
+`gcloud config get-value project`
+
+- The current project can be set using:
+`gcloud config set project`
+
 ## Step 2: Set Up License Files
 
 Copy your **Nomad** and **Consul** license files (`nomad.hclic` and `consul.hclic`) to the root of your working directory:
