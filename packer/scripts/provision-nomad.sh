@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export NOMAD_VERSION="1.8.3+ent"
+export NOMAD_VERSION="1.9.3+ent"
 export CONSUL_VERSION="1.19.2+ent"
 
 # Update system packages

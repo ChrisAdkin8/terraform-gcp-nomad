@@ -18,7 +18,17 @@ output "fqdn" {
   description = "FQDN of the Nomad server"
 }
 
-output "load_balancer_ip" {
-  description = "The public IP address of the load balancer."
-  value = google_compute_global_forwarding_rule.default.ip_address
+output "traefik_ui_ip" {
+  description = "The public IP address of the traefik UI."
+  value = google_compute_global_forwarding_rule.traefik_ui.ip_address
+}
+
+output "traefik_api_ip" {
+  description = "The public IP address of the traefik API."
+  value = google_compute_global_forwarding_rule.traefik_api.ip_address
+}
+
+output "minio_console_url" {
+  description = "URL for accessing minio UI"
+  value       = "minio-console.traefik-${var.datacenter}.${data.google_dns_managed_zone.default.dns_name}:8080"
 }

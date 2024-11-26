@@ -32,7 +32,7 @@ job "traefik" {
       driver = "docker"
 
       config {
-        image        = "traefik:v2.2"
+        image        = "traefik:v3.1.7"
         network_mode = "host"
 
         volumes = [
@@ -66,8 +66,8 @@ EOF
       }
 
       resources {
-        cpu    = 100
-        memory = 128
+        cpu    = 500
+        memory = 512
       }
     }
   }

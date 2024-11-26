@@ -66,12 +66,29 @@ EOF
   description = "Environment variables for Consul and Nomad"
 }
 
-output "primary_nomad_lb_ipaddress" {
-  value       = "${module.nomad.load_balancer_ip}"
-  description = "Public ip address for primary nomad client MIG"
+output "primary_nomad_traefik_ui_ip" {
+  value       = "${module.nomad.traefik_ui_ip}"
+  description = "Public ip address for primary nomad cluster traefik UI"
+}
+output "primary_nomad_traefik_api_ip" {
+  value       = "${module.nomad.traefik_api_ip}"
+  description = "Public ip address for primary nomad cluster traefik API"
 }
 
-output "secondary_nomad_lb_ipaddress" {
-  value       = "${module.secondary_nomad.load_balancer_ip}"
-  description = "Public ip address for secondary nomad client MIG"
+output "secondary_nomad_traefik_ui_ip" {
+  value       = "${module.secondary_nomad.traefik_ui_ip}"
+  description = "Public ip address for secondary nomad cluster traefik UI"
+}
+output "secondary_nomad_traefik_api_ip" {
+  value       = "${module.secondary_nomad.traefik_api_ip}"
+  description = "Public ip address for secondary nomad cluster traefik API"
+}
+
+output "minio_console_url" {
+  value = "${module.nomad.minio_console_url}"
+}
+
+output "minio_root_password" {
+  value     = module.jobs.minio_root_password
+  sensitive = true
 }

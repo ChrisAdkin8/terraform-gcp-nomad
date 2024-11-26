@@ -9,7 +9,7 @@ locals {
 resource "google_compute_instance" "consul_servers" {
   count                   = var.create_consul_cluster ? var.consul_server_instances : 0
   name                    = "${var.name_prefix}-consul-server-${count.index + 1}"
-  machine_type            = "e2-medium"
+  machine_type            = "e2-standard-4"
   metadata_startup_script = templatefile("${path.module}/templates/consul-server-startup.sh", local.consul_server_metadata)
   zone                    = var.zone
 

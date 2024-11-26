@@ -1,8 +1,11 @@
-#!/bin/bash
+gcloud auth application-default login
+sleep 3
+gcloud auth login
 
-# Prompt user for input
-echo "Please enter your GCP Project ID:"
-read gcp_project_id
+PROJECT_ID=$(gcloud config get-value project)
+
+# Update terraform.tfvars with the Project ID
+echo "gcp_project_id="\"$PROJECT_ID\" > tf/terraform.tfvars
 
 # Default region to London
 gcp_region="europe-west2"
@@ -14,8 +17,8 @@ gcp_zone="europe-west2-a"
 image_family="almalinux-8"
 
 # Create or overwrite the .pkrvars.hcl file with the provided values
-cat <<EOF > variables.pkrvars.hcl
-gcp_project_id = "${gcp_project_id}"
+cat <<EOF > packer/variables.pkrvars.hcl
+gcp_project_id = "$PROJECT_ID"
 gcp_region     = "${gcp_region}"
 gcp_zone       = "${gcp_zone}"
 image_family   = "${image_family}"
@@ -23,4 +26,4 @@ EOF
 
 # Print success message
 echo "Variables saved to variables.pkrvars.hcl:"
-cat variables.pkrvars.hcl
+cat packer/variables.pkrvars.hcl

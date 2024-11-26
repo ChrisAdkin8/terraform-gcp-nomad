@@ -124,7 +124,7 @@ variable "create_nomad_jobs" {
 
 variable "nomad_client_machine_type" {
   description = "The machine type to use for Nomad clients"
-  default     = "e2-medium"
+  default     = "e2-standard-4"
 }
 
 variable "nomad_client_disk_size" {
