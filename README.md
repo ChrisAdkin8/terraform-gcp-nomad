@@ -167,15 +167,9 @@ terraform-gcp-nomad/
 To destroy all resources:
 
 ```bash
-cd tf
-terraform destroy
+task destroy
+task clean
 ```
-
-## Roadmap
-
-- [ ] Kubernetes integration
-- [ ] Additional observability stack components
-- [ ] Auto-scaling configuration
 
 ## License
 
