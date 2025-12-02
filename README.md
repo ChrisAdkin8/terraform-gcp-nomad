@@ -16,19 +16,19 @@ This repo is designed for demostration purposes only, as such it has not been cr
 The deployment creates:
 
 - **2 x 3 client node Nomad clusters**
- 
+
   Provides cluster management and job scheduling
-  
+ 
 - **2 Consul clusters**
- 
+
   Provides service discovery and health checking
-  
+
 - **Traefik**
- 
+
   Ingress controller for routing traffic to services
    
 - **Grafana based observability stack**
- 
+
   Consisting of Loki backed by a GCS bucket, an Alloy Gateway, an alloy agent on each Nomad node and Grafana
 
 ![Reference Diagram](./docs/reference-diagram.png)
