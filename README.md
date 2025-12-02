@@ -1,65 +1,89 @@
-# Nomad and Consul Setup on GCP
+# Terraform GCP Nomad
 
-This guide outlines how to deploy **Nomad** and **Consul** on **Google Cloud Platform (GCP)** using **Packer** to build custom images based on HashiCorp's [Reference Architecture](https://developer.hashicorp.com/nomad/tutorials/enterprise/production-reference-architecture-vm-with-consul).
+Deploy a production-ready [HashiCorp Nomad](https://www.nomadproject.io/) and [Consul](https://www.consul.io/) cluster on Google Cloud Platform (GCP) using Packer and Terraform.
+
+This project follows HashiCorp's [Production Reference Architecture](https://developer.hashicorp.com/nomad/tutorials/enterprise/production-reference-architecture-vm-with-consul) for deploying Nomad with Consul on virtual machines.
+
+## Architecture
+
+The deployment creates:
+
+- **3 Nomad server nodes** — Provides cluster management and job scheduling
+- **Nomad client node(s)** — Runs workloads scheduled by the Nomad servers
+- **3 Consul server nodes** — Provides service discovery and health checking
+- **Traefik** — Ingress controller for routing traffic to services
 
 ![Reference Diagram](./docs/reference-diagram.png)
 
 ## Prerequisites
 
-Before you begin, ensure you have the following tools installed:
+Before you begin, ensure you have the following installed:
 
-- [Google Cloud CLI (gcloud)](https://cloud.google.com/sdk/docs/install)
-- [HashiCorp Packer](https://developer.hashicorp.com/packer/tutorials/docker-get-started/get-started-install-cli)
-- [HashiCorp Terraform](https://developer.hashicorp.com/terraform/install)
-- [Task](https://taskfile.dev/installation/)
-- **Nomad License File**
-- **Consul License File**
+| Tool | Installation Guide |
+|------|-------------------|
+| Google Cloud CLI (gcloud) | [Install Guide](https://cloud.google.com/sdk/docs/install) |
+| HashiCorp Packer | [Install Guide](https://developer.hashicorp.com/packer/tutorials/docker-get-started/get-started-install-cli) |
+| HashiCorp Terraform | [Install Guide](https://developer.hashicorp.com/terraform/install) |
+| Task | [Install Guide](https://taskfile.dev/installation/) |
 
-## Step 1: Authenticate with GCP
+You will also need:
 
-Invoke the following script:
+- A GCP project with billing enabled
+- Nomad Enterprise license file (`nomad.hclic`)
+- Consul Enterprise license file (`consul.hclic`)
+
+## Quick Start
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/ChrisAdkin8/terraform-gcp-nomad.git
+cd terraform-gcp-nomad
+```
+
+### 2. Authenticate with GCP
+
+Run the project setup script:
+
 ```bash
 ./project.sh
 ```
-The script:
-- Authenticates you for Google Cloud SDK and tools
-- Authenticates your application with Application Default Credentials (ADC)
-- Adds the GCP Project Id to the `packer/variables.pkr.hcl` file
-- Refreshes the `tf/terraform.tfvars` file with the GCP Project Id
 
-Note:
+This script:
 
-- The current project can be obtained using:
-`gcloud config get-value project`
+- Authenticates you with Google Cloud SDK
+- Sets up Application Default Credentials (ADC)
+- Configures the GCP Project ID in `packer/variables.pkr.hcl`
+- Generates `tf/terraform.tfvars` with the GCP Project ID
 
-- The current project can be set using:
-`gcloud config set project`
+To manually check or set your GCP project:
 
-## Step 2: Set Up License Files
+```bash
+# Get current project
+gcloud config get-value project
 
-Copy your **Nomad** and **Consul** license files (`nomad.hclic` and `consul.hclic`) to the root of your working directory:
+# Set project
+gcloud config set project YOUR_PROJECT_ID
+```
+
+### 3. Add License Files
+
+Copy your Nomad and Consul license files to the repository root:
 
 ```bash
 cp ~/Downloads/nomad.hclic .
 cp ~/Downloads/consul.hclic .
 ```
 
-Ensure both license files are present before building your images.
+### 4. Build Images with Packer
 
-## Step 3: Build Disk Images with Packer
+Build the VM images using Task:
 
-### Go Task Method
-```
+```bash
 task packer
 ```
 
-### Manual Method
-
-#### Build the Images
-
-Once variables are set, you can use **Packer** to build the **Nomad** server and client images. To update the version of **Nomad** or **Consul**, modify the `NOMAD_VERSION` and `CONSUL_VERSION` in the [provision-nomad.sh](./packer/scripts/provision-nomad.sh) & [provision-consul.sh](./packer/scripts/provision-consul.sh) scripts.
-
-Alternatively, you can run both builds simultaneously using `./build-packer.sh`, or manually with the following commands:
+Or build manually:
 
 ```bash
 # Initialize Packer
@@ -67,38 +91,93 @@ packer init packer/gcp-almalinux-nomad-server.pkr.hcl
 packer init packer/gcp-almalinux-nomad-client.pkr.hcl
 packer init packer/gcp-almalinux-consul-server.pkr.hcl
 
-# Build the Nomad server image
+# Build images
 packer build -var-file=variables.pkrvars.hcl packer/gcp-almalinux-nomad-server.pkr.hcl
-
-# Build the Nomad client image
 packer build -var-file=variables.pkrvars.hcl packer/gcp-almalinux-nomad-client.pkr.hcl
-
-# Build the Consul server image
 packer build -var-file=variables.pkrvars.hcl packer/gcp-almalinux-consul-server.pkr.hcl
 ```
 
-## Step 4: Provision Nomad Cluster with Terraform
+### 5. Deploy with Terraform
 
-### Go Task Method
-```
+Deploy the infrastructure:
+
+```bash
 task apply
 ```
 
-### Manual Method
-
-You can now use Terraform to provision a **Nomad** cluster. This example creates a 3-node Nomad server cluster with an additional Nomad client node. The `terraform.tfvars` file is generated from the original `variables.pkrvars.hcl` used during the Packer build.
+Or manually:
 
 ```bash
-# Create tfvars from pkrvars and provision the cluster
-sed '/image_family.*/d' variables.pkrvars.hcl > tf/terraform.tfvars
 cd tf
 terraform init
 terraform apply
 ```
 
-## Firewall Configuration
-The firewall rule will open TCP ports 4646 and 8500, allowing you to access Nomad on port 4646 and Consul on port 8500 on the relevent the servers. You can access these services via a web browser using the external IP addresses of your servers. 
+## Accessing the Cluster
 
-# Kubernetes Integration (Work in Progress)
+After deployment, you can access:
 
-Integration with **Kubernetes** is currently a work in progress. Stay tuned for updates on how to incorporate **Nomad** into your Kubernetes environment.
+| Service | Port | URL |
+|---------|------|-----|
+| Nomad UI | 4646 | `http://<nomad-server-ip>:4646` |
+| Consul UI | 8500 | `http://<consul-server-ip>:8500` |
+
+The firewall rules automatically open TCP ports 4646 and 8500 for external access.
+
+## Customizing Versions
+
+To update Nomad or Consul versions, modify the following scripts:
+
+- **Nomad**: `packer/scripts/provision-nomad.sh` — Update `NOMAD_VERSION`
+- **Consul**: `packer/scripts/provision-consul.sh` — Update `CONSUL_VERSION`
+
+Then rebuild the images with Packer.
+
+## Project Structure
+
+```
+terraform-gcp-nomad/
+├── packer/
+│   ├── gcp-almalinux-nomad-server.pkr.hcl
+│   ├── gcp-almalinux-nomad-client.pkr.hcl
+│   ├── gcp-almalinux-consul-server.pkr.hcl
+│   ├── variables.pkr.hcl
+│   └── scripts/
+│       ├── provision-nomad.sh
+│       └── provision-consul.sh
+├── tf/
+│   ├── main.tf
+│   ├── variables.tf
+│   ├── outputs.tf
+│   └── terraform.tfvars
+├── project.sh
+├── Taskfile.yml
+└── README.md
+```
+
+## Cleanup
+
+To destroy all resources:
+
+```bash
+cd tf
+terraform destroy
+```
+
+## Roadmap
+
+- [ ] Kubernetes integration
+- [ ] Additional observability stack components
+- [ ] Auto-scaling configuration
+
+## License
+
+This project is provided as-is for educational and demonstration purposes.
+
+## References
+
+- [Nomad Production Reference Architecture](https://developer.hashicorp.com/nomad/tutorials/enterprise/production-reference-architecture-vm-with-consul)
+- [Nomad Documentation](https://developer.hashicorp.com/nomad/docs)
+- [Consul Documentation](https://developer.hashicorp.com/consul/docs)
+- [Packer Documentation](https://developer.hashicorp.com/packer/docs)
+- [Terraform GCP Provider](https://registry.terraform.io/providers/hashicorp/google/latest/docs)
