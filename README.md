@@ -11,8 +11,6 @@ This repo is designed for demostration purposes only, as such it has not been cr
 - scalability
 - high availability
 
-This project follows HashiCorp's [Production Reference Architecture](https://developer.hashicorp.com/nomad/tutorials/enterprise/production-reference-architecture-vm-with-consul) for deploying Nomad with Consul on virtual machines.
-
 ## Architecture
 
 The deployment creates:
