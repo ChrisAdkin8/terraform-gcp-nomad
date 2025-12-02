@@ -1,0 +1,73 @@
+datacenter            = "__DATACENTER__"
+data_dir              = "/opt/nomad/data"
+region                = "__REGION__"
+
+bind_addr             = "0.0.0.0"
+
+log_level             = "INFO"
+log_file              = "/var/log/"
+log_rotate_duration   = "24h"
+log_rotate_max_files  = 5
+
+server {
+  license_path        = "/etc/nomad.d/license.hclic"
+  enabled             = false
+}
+
+client {
+  enabled             = true
+
+  host_volume "minio" {
+    path      = "/opt/minio/data"
+    read_only = false
+  }
+
+  host_volume "loki" {
+    path      = "/opt/loki/data"
+    read_only = false
+  }
+
+  host_volume "alloy" {
+    path      = "/opt/alloy/data"
+    read_only = false
+  }
+
+  host_volume "grafana" {
+    path      = "/opt/grafana/data"
+    read_only = false
+  }
+
+  servers = [
+    "provider=gce tag_value=nomad-server"
+  ]
+}
+
+plugin "docker" {
+  config {
+    allow_privileged = true
+  }
+  docker.volumes.enabled = true
+}
+
+plugin "raw_exec" {
+  config {
+    enabled           = true
+  }
+}
+
+telemetry {
+  prometheus_metrics = true
+}
+
+consul {
+  token = "9a8977a7-3057-6653-a15e-6ec2928aec8b"
+  enabled = true
+  service_identity {
+    aud = ["consul.io"]
+    ttl = "1h"
+  }
+  task_identity {
+    aud = ["consul.io"]
+    ttl = "1h"
+  }
+}

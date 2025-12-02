@@ -1,0 +1,141 @@
+module "consul" {
+  source = "./modules/consul"
+
+  create_consul_cluster    = var.create_consul_cluster
+  consul_server_instances  = var.consul_server_instances
+  datacenter               = var.datacenter
+  gcs_bucket               = google_storage_bucket.default.name
+  name_prefix              = local.name_prefix
+  project_id               = var.project_id
+  region                   = var.region
+  subnet_self_link         = module.network.subnet_self_link
+  zone                     = data.google_compute_zones.default.names[0]
+
+  depends_on = [
+    module.network,
+    google_storage_bucket_object.config,
+    google_storage_bucket_object.license
+  ]
+}
+
+data "http" "consul_status" {
+  url = "${local.consul_url}/v1/status/leader"
+
+  request_headers = {
+    "X-Consul-Token" = var.initial_management_token
+  }
+
+  retry {
+    attempts     = 10
+    min_delay_ms = 1024 
+  }
+
+  depends_on = [ module.consul ,
+                 module.secondary_consul]
+}
+
+/*
+resource "null_resource" "wait_for_consul" {
+ provisioner "local-exec" {
+    command = "while ! consul members -http-addr=$CONSUL_HTTP_ADDR 2>&1; do echo 'waiting for consul api...'; sleep 10; done"    
+    
+    environment = {
+      CONSUL_HTTP_ADDR = "http://${module.consul.fqdn}:8500",
+      CONSUL_TOKEN     = var.initial_management_token
+    }
+  }
+  depends_on = [module.consul]
+}
+*/
+
+resource "consul_acl_policy" "nomad_agent" {
+  provider = consul.primary
+  name     = "primary-nomad-agent"
+  rules    = <<EOF
+agent_prefix "" {
+  policy = "read"
+}
+
+node_prefix "" {
+  policy = "write"
+}
+
+service_prefix "" {
+  policy = "write"
+}
+
+EOF
+
+  depends_on = [ data.http.consul_status ]
+}
+
+module "secondary_consul" {
+  source = "./modules/consul"
+
+  create_consul_cluster    = var.create_secondary_consul_cluster
+  consul_server_instances  = var.secondary_consul_server_instances
+  datacenter               = var.secondary_datacenter
+  gcs_bucket               = google_storage_bucket.default.name
+  name_prefix              = local.secondary_name_prefix
+  project_id               = var.project_id
+  region                   = var.secondary_region
+  subnet_self_link         = module.network.secondary_subnet_self_link
+  zone                     = data.google_compute_zones.secondary.names[0]
+
+  depends_on = [
+    module.network,
+    google_storage_bucket_object.config,
+    google_storage_bucket_object.license
+  ]
+}
+
+data "http" "secondary_consul_status" {
+  url = "${local.secondary_consul_url}/v1/status/leader"
+
+  request_headers = {
+    "X-Consul-Token" = var.initial_management_token
+  }
+
+  retry {
+    attempts     = 10
+    min_delay_ms = 1024 
+  }
+
+  depends_on = [ module.consul ,
+                 module.secondary_consul]
+}
+/*
+resource "null_resource" "wait_for_secondary_consul" {
+ count = var.create_secondary_consul_cluster ? 1 : 0  
+ provisioner "local-exec" {
+    command = "while ! consul members -http-addr=$CONSUL_HTTP_ADDR 2>&1; do echo 'waiting for secondary consul api...'; sleep 10; done"    
+    
+    environment = {
+      CONSUL_HTTP_ADDR = "http://${module.secondary_consul.fqdn}:8500",
+      CONSUL_TOKEN     = var.initial_management_token
+    }
+  }
+  depends_on = [module.secondary_consul]
+}
+*/
+
+resource "consul_acl_policy" "secondary_nomad_agent" {
+  provider = consul.secondary
+  name     = "secondary-nomad-agent"
+  rules    = <<EOF
+agent_prefix "" {
+  policy = "read"
+}
+
+node_prefix "" {
+  policy = "write"
+}
+
+service_prefix "" {
+  policy = "write"
+}
+
+EOF
+
+  depends_on = [ data.http.secondary_consul_status ]
+}
