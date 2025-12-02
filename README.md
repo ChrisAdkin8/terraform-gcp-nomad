@@ -1,6 +1,15 @@
 # Terraform GCP Nomad
 
-Deploy a production-ready [HashiCorp Nomad](https://www.nomadproject.io/) and [Consul](https://www.consul.io/) cluster on Google Cloud Platform (GCP) using Packer and Terraform.
+Deploy a [HashiCorp Nomad](https://www.nomadproject.io/) and [Consul](https://www.consul.io/) cluster on Google Cloud Platform (GCP) using Packer and Terraform.
+
+## Disclaimer
+
+This repo is designed for demostration purposes only, as such it has not been created for production purposes in terms of:
+
+- security hardening
+- performance
+- scalability
+- high availability
 
 This project follows HashiCorp's [Production Reference Architecture](https://developer.hashicorp.com/nomad/tutorials/enterprise/production-reference-architecture-vm-with-consul) for deploying Nomad with Consul on virtual machines.
 
@@ -8,10 +17,10 @@ This project follows HashiCorp's [Production Reference Architecture](https://dev
 
 The deployment creates:
 
-- **3 Nomad server nodes** — Provides cluster management and job scheduling
-- **Nomad client node(s)** — Runs workloads scheduled by the Nomad servers
-- **3 Consul server nodes** — Provides service discovery and health checking
-- **Traefik** — Ingress controller for routing traffic to services
+- **2 x 3 client node Nomad clusters**  — Provides cluster management and job scheduling
+- **2 Consul clusters**                 — Provides service discovery and health checking
+- **Traefik**                           — Ingress controller for routing traffic to services
+- **Grafana based observability stack** — Consisting of Loki backed by a GCS bucket, an Alloy Gateway, an alloy agent on each Nomad node and Grafana
 
 ![Reference Diagram](./docs/reference-diagram.png)
 
