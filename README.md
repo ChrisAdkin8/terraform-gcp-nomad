@@ -142,26 +142,70 @@ Then rebuild the images with Packer.
 
 ## Project Structure
 
-```
 terraform-gcp-nomad/
-├── packer/
-│   ├── gcp-almalinux-nomad-server.pkr.hcl
-│   ├── gcp-almalinux-nomad-client.pkr.hcl
-│   ├── gcp-almalinux-consul-server.pkr.hcl
-│   ├── variables.pkr.hcl
-│   └── scripts/
-│       ├── provision-nomad.sh
-│       └── provision-consul.sh
-├── tf/
-│   ├── main.tf
-│   ├── variables.tf
-│   ├── outputs.tf
-│   └── terraform.tfvars
-├── project.sh
-├── Taskfile.yml
-└── README.md
-```
-
+│
+├── 📄 README.md                          # Project documentation
+├── 📄 Taskfile.yml                       # Task runner configuration
+├── 📄 project.sh                         # GCP authentication & setup script
+├── 📄 build-packer.sh                    # Parallel Packer build script
+├── 📄 variables.pkrvars.hcl              # Shared Packer variables
+│
+├── 📄 nomad.hclic                        # Nomad Enterprise license (user-provided)
+├── 📄 consul.hclic                       # Consul Enterprise license (user-provided)
+│
+├── 📁 packer/                            # Packer image definitions
+│   │
+│   ├── 📄 variables.pkr.hcl              # Packer variable definitions
+│   │
+│   ├── 📄 gcp-almalinux-nomad-server.pkr.hcl   # Nomad server image template
+│   ├── 📄 gcp-almalinux-nomad-client.pkr.hcl   # Nomad client image template
+│   ├── 📄 gcp-almalinux-consul-server.pkr.hcl  # Consul server image template
+│   │
+│   └── 📁 scripts/                       # Provisioning scripts for Packer
+│       ├── 📄 provision-nomad.sh         # Installs Nomad (set NOMAD_VERSION here)
+│       └── 📄 provision-consul.sh        # Installs Consul (set CONSUL_VERSION here)
+│
+├── 📁 tf/                                # Terraform configurations
+│   │
+│   ├── 📄 main.tf                        # Root module - orchestrates infrastructure
+│   ├── 📄 variables.tf                   # Input variable definitions
+│   ├── 📄 outputs.tf                     # Output value definitions
+│   ├── 📄 terraform.tfvars               # Variable values (auto-generated)
+│   │
+│   └── 📁 modules/                       # Reusable Terraform modules
+│       │
+│       ├── 📁 nomad-server/              # Nomad server cluster module
+│       │   ├── 📄 main.tf
+│       │   ├── 📄 variables.tf
+│       │   └── 📄 outputs.tf
+│       │
+│       ├── 📁 nomad-client/              # Nomad client nodes module
+│       │   ├── 📄 main.tf
+│       │   ├── 📄 variables.tf
+│       │   └── 📄 outputs.tf
+│       │
+│       ├── 📁 consul-server/             # Consul server cluster module
+│       │   ├── 📄 main.tf
+│       │   ├── 📄 variables.tf
+│       │   └── 📄 outputs.tf
+│       │
+│       ├── 📁 networking/                # VPC, subnets, firewall rules
+│       │   ├── 📄 main.tf
+│       │   ├── 📄 variables.tf
+│       │   └── 📄 outputs.tf
+│       │
+│       └── 📁 observability/             # Monitoring stack (Loki, Grafana, Alloy)
+│           ├── 📄 main.tf
+│           ├── 📄 variables.tf
+│           ├── 📄 outputs.tf
+│           └── 📁 jobs/                  # Nomad job specifications
+│               ├── 📄 loki_gateway.nomad.hcl
+│               └── 📄 grafana.nomad.hcl
+│
+└── 📁 jobs/                              # Standalone Nomad job specs (optional)
+    ├── 📄 traefik.nomad.hcl              # Ingress controller
+    └── 📄 example-app.nomad.hcl          # Example application
+    
 ## Cleanup
 
 To destroy all resources:
