@@ -86,6 +86,14 @@ cp ~/Downloads/consul.hclic .
 
 ### 4. Build Images with Packer
 
+To short cut deploying the Nomad/Consul setup in individual steps, the following command can be run:
+
+```bash
+task all
+```
+
+Otherwise, follow the rest of the steps in this README.
+
 Build the VM images using Task:
 
 ```bash
