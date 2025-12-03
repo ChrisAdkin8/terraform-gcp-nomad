@@ -157,65 +157,86 @@ Then rebuild the images with Packer.
 ```
 terraform-gcp-nomad/
 │
-├── 📄 README.md                          # Project documentation
-├── 📄 Taskfile.yml                       # Task runner configuration
-├── 📄 project.sh                         # GCP authentication & setup script
-├── 📄 build-packer.sh                    # Parallel Packer build script
-├── 📄 variables.pkrvars.hcl              # Shared Packer variables
+├── 📄 README.md                                # Project documentation
+├── 📄 Taskfile.yml                             # Task runner configuration
+├── 📄 project.sh                               # GCP authentication & setup script
+├── 📄 build-packer.sh                          # Parallel Packer build script
+├── 📄 variables.pkrvars.hcl                    # Shared Packer variables
 │
-├── 📄 nomad.hclic                        # Nomad Enterprise license (user-provided)
-├── 📄 consul.hclic                       # Consul Enterprise license (user-provided)
+├── 📄 nomad.hclic                              # Nomad Enterprise license (user-provided)
+├── 📄 consul.hclic                             # Consul Enterprise license (user-provided)
 │
-├── 📁 packer/                            # Packer image definitions
+├── 📁 packer/                                  # Packer image definitions
 │   │
-│   ├── 📄 variables.pkr.hcl              # Packer variable definitions
+│   ├── 📄 variables.pkr.hcl                    # Packer variable definitions
 │   │
 │   ├── 📄 gcp-almalinux-nomad-server.pkr.hcl   # Nomad server image template
 │   ├── 📄 gcp-almalinux-nomad-client.pkr.hcl   # Nomad client image template
 │   ├── 📄 gcp-almalinux-consul-server.pkr.hcl  # Consul server image template
 │   │
-│   └── 📁 scripts/                       # Provisioning scripts for Packer
-│       ├── 📄 provision-nomad.sh         # Installs Nomad (set NOMAD_VERSION here)
-│       └── 📄 provision-consul.sh        # Installs Consul (set CONSUL_VERSION here)
+│   ├── 📁 configs/                             # Provisioning scripts for Packer
+│   │   ├── 📄 provision-nomad.sh               # Installs Nomad (set NOMAD_VERSION here)
+│   │   └── 📄 provision-consul.sh              # Installs Consul (set CONSUL_VERSION here)
+│   │
+│   └── 📁 scripts/                             # Provisioning scripts for Packer
+│       ├── 📄 provision-nomad.sh               # Installs Nomad (set NOMAD_VERSION here)
+│       └── 📄 provision-consul.sh              # Installs Consul (set CONSUL_VERSION here)
 │
-└── 📁 tf/                                # Terraform configurations
+└── 📁 tf/                                      # Terraform configurations
     │
-    ├── 📄 main.tf                        # Root module - orchestrates infrastructure
-    ├── 📄 variables.tf                   # Input variable definitions
-    ├── 📄 outputs.tf                     # Output value definitions
-    ├── 📄 terraform.tfvars               # Variable values (auto-generated)
+    ├── 📄 consul.tf                        
+    ├── 📄 data.tf                        
+    ├── 📄 firewall.tf                        
+    ├── 📄 gcs.tf                        
+    ├── 📄 firewall.tf                        
+    ├── 📄 main.tf                              # Root module - orchestrates infrastructure
+    ├── 📄 network.tf
+    ├── 📄 nomad.tf
+    ├── 📄 output.tf
+    ├── 📄 providers.tf
+    ├── 📄 variables.tf                         # Input variable definitions
+    ├── 📄 versions.tf                   
+    ├── 📄 outputs.tf                           # Output value definitions
+    ├── 📄 terraform.tfvars                     # Variable values (auto-generated)
     │
-    └── 📁 modules/                       # Reusable Terraform modules
+    └── 📁 modules/                             # Reusable inline Terraform modules
         │
-        ├── 📁 nomad-server/              # Nomad server cluster module
+        ├── 📁 nomad/                           # Nomad server cluster module
+        │   ├── 📄 data.tf
+        │   ├── 📄 dns.tf
+        │   ├── 📄 iam.tf
+        │   ├── 📄 lb.tf
+        │   ├── 📄 main.tf
+        │   ├── 📄 mig.tf
         │   ├── 📄 main.tf
         │   ├── 📄 variables.tf
         │   └── 📄 outputs.tf
         │
-        ├── 📁 nomad-client/              # Nomad client nodes module
+        ├── 📁 consul/                          # Consul server cluster module
+        │   ├── 📄 data.tf
+        │   ├── 📄 dns.tf
+        │   ├── 📄 iam.tf
+        │   ├── 📄 main.tf
         │   ├── 📄 main.tf
         │   ├── 📄 variables.tf
         │   └── 📄 outputs.tf
         │
-        ├── 📁 consul-server/             # Consul server cluster module
-        │   ├── 📄 main.tf
-        │   ├── 📄 variables.tf
-        │   └── 📄 outputs.tf
-        │
-        ├── 📁 networking/                # VPC, subnets, firewall rules
-        │   ├── 📄 main.tf
+        ├── 📁 network/                         # VPC, subnets, firewall rules
+        │   ├── 📄 firewall.tf
         │   ├── 📄 variables.tf
         │   └── 📄 outputs.tf
         │
         └── 📁 observability/             # Monitoring stack (Loki, Grafana, Alloy)
-            ├── 📄 main.tf
-            ├── 📄 variables.tf
-            ├── 📄 outputs.tf
-            └── 📁 jobs/                  # Nomad job specifications
-                ├── 📄 traefik.nomad.hcl
-                ├── 📄 loki_gateway.nomad.hcl
-                ├── 📄 alloy.nomad.hcl
-                └── 📄 grafana.nomad.hcl
+            ├── 📁 function-code/ 
+            ├── 📄 alloy.nomad.tpl
+            ├── 📄 grafana.nomad.tpl
+            ├── 📄 loki_gateway.nomad.tpl
+            ├── 📄 bigquery.tf
+            ├── 📄 gcs.tf
+            ├── 📄 iam.tf
+            ├── 📄 jobs.tf
+            ├── 📄 locals.tf
+            └── 📄 variables.tf
 ```
 
 ## Component Overview
