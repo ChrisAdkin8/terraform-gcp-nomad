@@ -152,8 +152,6 @@ Then rebuild the images with Packer.
 
 ## Project Structure
 
-## Project Structure
-
 ```
 terraform-gcp-nomad/
 │
