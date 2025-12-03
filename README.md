@@ -61,28 +61,19 @@ cd terraform-gcp-nomad
 
 ### 2. Authenticate with GCP
 
-Run the project setup script:
-
 ```bash
-./project.sh
-```
+# Authenticate with GCP
+gcloud auth login --update-adc
 
-This script:
-
-- Authenticates you with Google Cloud SDK
-- Sets up Application Default Credentials (ADC)
-- Configures the GCP Project ID in `packer/variables.pkr.hcl`
-- Generates `tf/terraform.tfvars` with the GCP Project ID
-
-To manually check or set your GCP project:
-
-```bash
 # Get current project
 gcloud config get-value project
 
 # Set project
 gcloud config set project YOUR_PROJECT_ID
 ```
+
+* If Nomad and Consul have been deployed before using this repo, check that tf/terraform.vars does not contain an
+  old GCP project id.*
 
 ### 3. Add License Files
 
