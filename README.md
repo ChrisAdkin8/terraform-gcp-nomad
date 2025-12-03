@@ -170,46 +170,44 @@ terraform-gcp-nomad/
 │       ├── 📄 provision-nomad.sh         # Installs Nomad (set NOMAD_VERSION here)
 │       └── 📄 provision-consul.sh        # Installs Consul (set CONSUL_VERSION here)
 │
-├── 📁 tf/                                # Terraform configurations
-│   │
-│   ├── 📄 main.tf                        # Root module - orchestrates infrastructure
-│   ├── 📄 variables.tf                   # Input variable definitions
-│   ├── 📄 outputs.tf                     # Output value definitions
-│   ├── 📄 terraform.tfvars               # Variable values (auto-generated)
-│   │
-│   └── 📁 modules/                       # Reusable Terraform modules
-│       │
-│       ├── 📁 nomad-server/              # Nomad server cluster module
-│       │   ├── 📄 main.tf
-│       │   ├── 📄 variables.tf
-│       │   └── 📄 outputs.tf
-│       │
-│       ├── 📁 nomad-client/              # Nomad client nodes module
-│       │   ├── 📄 main.tf
-│       │   ├── 📄 variables.tf
-│       │   └── 📄 outputs.tf
-│       │
-│       ├── 📁 consul-server/             # Consul server cluster module
-│       │   ├── 📄 main.tf
-│       │   ├── 📄 variables.tf
-│       │   └── 📄 outputs.tf
-│       │
-│       ├── 📁 networking/                # VPC, subnets, firewall rules
-│       │   ├── 📄 main.tf
-│       │   ├── 📄 variables.tf
-│       │   └── 📄 outputs.tf
-│       │
-│       └── 📁 observability/             # Monitoring stack (Loki, Grafana, Alloy)
-│           ├── 📄 main.tf
-│           ├── 📄 variables.tf
-│           ├── 📄 outputs.tf
-│           └── 📁 jobs/                  # Nomad job specifications
-│               ├── 📄 loki_gateway.nomad.hcl
-│               └── 📄 grafana.nomad.hcl
-│
-└── 📁 jobs/                              # Standalone Nomad job specs (optional)
-    ├── 📄 traefik.nomad.hcl              # Ingress controller
-    └── 📄 example-app.nomad.hcl          # Example application
+└── 📁 tf/                                # Terraform configurations
+    │
+    ├── 📄 main.tf                        # Root module - orchestrates infrastructure
+    ├── 📄 variables.tf                   # Input variable definitions
+    ├── 📄 outputs.tf                     # Output value definitions
+    ├── 📄 terraform.tfvars               # Variable values (auto-generated)
+    │
+    └── 📁 modules/                       # Reusable Terraform modules
+        │
+        ├── 📁 nomad-server/              # Nomad server cluster module
+        │   ├── 📄 main.tf
+        │   ├── 📄 variables.tf
+        │   └── 📄 outputs.tf
+        │
+        ├── 📁 nomad-client/              # Nomad client nodes module
+        │   ├── 📄 main.tf
+        │   ├── 📄 variables.tf
+        │   └── 📄 outputs.tf
+        │
+        ├── 📁 consul-server/             # Consul server cluster module
+        │   ├── 📄 main.tf
+        │   ├── 📄 variables.tf
+        │   └── 📄 outputs.tf
+        │
+        ├── 📁 networking/                # VPC, subnets, firewall rules
+        │   ├── 📄 main.tf
+        │   ├── 📄 variables.tf
+        │   └── 📄 outputs.tf
+        │
+        └── 📁 observability/             # Monitoring stack (Loki, Grafana, Alloy)
+            ├── 📄 main.tf
+            ├── 📄 variables.tf
+            ├── 📄 outputs.tf
+            └── 📁 jobs/                  # Nomad job specifications
+                ├── 📄 traefik.nomad.hcl
+                ├── 📄 loki_gateway.nomad.hcl
+                ├── 📄 alloy.nomad.hcl
+                └── 📄 grafana.nomad.hcl
 ```
 
 ## Component Overview
