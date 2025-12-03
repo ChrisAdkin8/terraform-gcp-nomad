@@ -72,8 +72,8 @@ gcloud config get-value project
 gcloud config set project YOUR_PROJECT_ID
 ```
 
-* If Nomad and Consul have been deployed before using this repo, check that tf/terraform.vars does not contain an
-  old GCP project id.*
+**If Nomad and Consul have been deployed before using this repo, check that tf/terraform.vars does not contain an
+  old GCP project id.**
 
 ### 3. Add License Files
 
