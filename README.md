@@ -63,7 +63,7 @@ cd terraform-gcp-nomad
 
 The naming convention for service host URLs is:
 
-<component>.traefik-<data-center>.<dns-name>
+\<component\>.traefik-\<data-center\>.\<dns-name\>
 
 e.g.:
 
