@@ -59,20 +59,7 @@ git clone https://github.com/ChrisAdkin8/terraform-gcp-nomad.git
 cd terraform-gcp-nomad
 ```
 
-### 2. Customise your GCP account dns name 
-
-The naming convention for service host URLs is:
-
-\<component\>.traefik-\<data-center\>.\<dns-name\>
-
-e.g.:
-
-loki.traefik-dc1.gcp.sbx.hashicorpdemo.com
-
-assuming that your GCP account dns name is different to gcp.sbx.hashicorpdemo.com, either specify a value
-for dns_name in tf/terraform.tfvars file or change the default value in the tf/variables.tf file. 
-
-### 3. Authenticate with GCP
+### 2. Authenticate with GCP
 
 ```bash
 # Authenticate with GCP
@@ -88,7 +75,7 @@ gcloud config set project YOUR_PROJECT_ID
 **If Nomad and Consul have been deployed before using this repo, check that tf/terraform.vars does not contain an
   old GCP project id.**
 
-### 4. Add License Files
+### 3. Add License Files
 
 Copy your Nomad and Consul license files to the repository root:
 
@@ -97,7 +84,7 @@ cp ~/Downloads/nomad.hclic .
 cp ~/Downloads/consul.hclic .
 ```
 
-### 5. Build Images with Packer
+### 4. Build Images with Packer
 
 To short cut deploying the Nomad/Consul setup in individual steps, the following command can be run:
 
@@ -127,7 +114,7 @@ packer build -var-file=variables.pkrvars.hcl packer/gcp-almalinux-nomad-client.p
 packer build -var-file=variables.pkrvars.hcl packer/gcp-almalinux-consul-server.pkr.hcl
 ```
 
-### 6. Deploy with Terraform
+### 5. Deploy with Terraform
 
 Deploy the infrastructure:
 
