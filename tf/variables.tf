@@ -92,11 +92,6 @@ variable "dns_managed_zone" {
   default     = "doormat-accountid"
 }
 
-variable "dns_zone" {
-  type        = string
-  default     = "gcp.sbx.hashicorpdemo.com"
-}
-
 variable "gcs_bucket" {
   description = "The name of the GCS bucket to use for configuration"
   default     = null

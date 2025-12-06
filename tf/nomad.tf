@@ -45,7 +45,7 @@ module "observability" {
   nomad_addr            = "http://${module.nomad.fqdn}:4646"
   consul_token          = var.initial_management_token
   data_center           = "dc1" 
-  dns_zone              = var.dns_zone
+  dns_zone              = local.base_domain
   region                = var.region 
   loki_bucket_name      = "loki_bucket"
   bigquery_dataset_name = "loki_logs"

@@ -7,6 +7,8 @@ locals {
   secondary_nomad_url   = "http://${module.secondary_nomad.fqdn}:4646"
   consul_url            = "http://${module.consul.fqdn}:8500"
   secondary_consul_url  = "http://${module.secondary_consul.fqdn}:8500"
+  base_domain           = data.external.dns_zone.result.domain
+}
 }
 
 resource "random_pet" "default" {

@@ -20,3 +20,9 @@ data "http" "mgmt_ip" {
   }
 }
 
+data "external" "dns_zone" {
+  program = [
+    "bash", "-c",
+    "zone=$(gcloud dns managed-zones list --format='value(dnsName)' --limit=1 | awk -F. '{print $(NF-4)\".\"$(NF-3)\".\"$(NF-2)\".\"$(NF-1)}'); echo \"{\\\"domain\\\": \\\"$zone\\\"}\""
+  ]
+}
