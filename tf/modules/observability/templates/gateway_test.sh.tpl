@@ -1,0 +1,11 @@
+curl -v -X POST \
+  -H "Content-Type: application/json" \
+  -d '{
+    "streams": [
+      {
+        "stream": {"job": "test", "source": "curl"},
+        "values": [["'$(date +%s)000000000'", "Test log entry"]]
+      }
+    ]
+  }' \
+  http://gateway.traefik-dc1.hc-5d73e0c79fbd4f85ab5895c8f37.gcp.sbx.hashicorpdemo.com:8080/loki/api/v1/push

@@ -1,4 +1,4 @@
-job "loki_gateway" {
+job "loki" {
   datacenters = ["dc1"]
   type        = "service"
 
@@ -10,10 +10,7 @@ job "loki_gateway" {
     auto_revert      = true
   }
 
-  # ========================================
-  # LOKI GROUP
-  # ========================================
-  group "loki_group" {
+  group "loki" {
     count = 1
 
     restart {
@@ -24,10 +21,10 @@ job "loki_gateway" {
     }
     
     network {      
-      port "loki_http" {
+      port "http" {
         static = 3100
       }
-      port "loki_grpc" {
+      port "grpc" {
         static = 9096
       }
     }
@@ -45,7 +42,7 @@ job "loki_gateway" {
       
       config {
         image = "grafana/loki:2.9.3"
-        ports = ["loki_http", "loki_grpc"]
+        ports = ["http", "grpc"]
         args  = ["-config.file=/local/loki-config.yaml"]
       }
 
@@ -60,7 +57,7 @@ job "loki_gateway" {
 
       template {
         data = <<EOF
-{{ with nomadVar "nomad/jobs/loki_gateway/loki_group/loki" }}{{ .gcs_service_account_key }}{{ end }}
+{{ with nomadVar "nomad/jobs/loki/loki_group/loki" }}{{ .gcs_service_account_key }}{{ end }}
 EOF
         destination = "secrets/gcs-key.json"
         change_mode = "restart"
@@ -83,7 +80,7 @@ common:
   path_prefix: /loki
   storage:
     gcs:
-      bucket_name: {{ with nomadVar "nomad/jobs/loki_gateway/loki_group/loki" }}{{ .gcs_bucket_name }}{{ end }}
+      bucket_name: {{ with nomadVar "nomad/jobs/loki/loki_group/loki" }}{{ .gcs_bucket_name }}{{ end }}
       chunk_buffer_size: 104857600
       request_timeout: 0s
       enable_http2: true
@@ -162,11 +159,11 @@ EOF
       
       service {
         name = "loki"
-        port = "loki_http"
+        port = "http"
         
         tags = [
           "traefik.enable=true",
-          "traefik.http.routers.loki.rule=Host(`loki.${host_url_suffix}`) && PathPrefix(`/loki/api/v1/push`)",
+          "traefik.http.routers.loki.rule=Host(`loki.${host_url_suffix}`) && (PathPrefix(`/loki/api/v1/push`) || PathPrefix(`/loki/api/v1/query`))",
           "traefik.http.routers.loki.entrypoints=http",
           "traefik.http.services.loki.loadbalancer.server.port=3100"
         ]
@@ -174,104 +171,6 @@ EOF
         check {
           type     = "http"
           path     = "/ready"
-          interval = "10s"
-          timeout  = "5s"
-        }
-      }
-    }
-  }
-
-  # ========================================
-  # GATEWAY GROUP
-  # ========================================
-  group "gateway_group" {
-    count = 1
-
-    restart {
-      attempts = 3
-      delay    = "15s"
-      interval = "5m"
-      mode     = "fail"
-    }
-
-    network {
-      port "gateway_ui" {
-        to = 12345
-      }
- 
-      port "gateway_loki" {
-        static = 12346
-      }
-    }
-
-    task "alloy-gateway" {
-      driver = "docker"
-
-      config {
-        image = "grafana/alloy:v1.11.3"
-        ports = ["gateway_ui", "gateway_loki"]
-        args  = [
-          "run",
-          "--server.http.listen-addr=0.0.0.0:12345",
-          "--storage.path=/var/lib/alloy/data",
-          "/local/config.alloy",
-        ]
-      }
-
-      template {
-        data = <<EOF
-logging {
-  level  = "info"
-  format = "logfmt"
-}
-
-loki.source.api "agents" {
-  http {
-    listen_address = "0.0.0.0"
-    listen_port    = 12346
-  }
-  
-  forward_to = [loki.write.loki_local.receiver]
-}
-
-loki.write "loki_local" {
-  endpoint {
-    url = "http://loki.${host_url_suffix}:8080/loki/api/v1/push"
-    
-    batch_wait          = "1s"
-    batch_size          = "100KiB"
-    max_backoff_retries = 10
-  }
-  
-  external_labels = {
-    source = "alloy-gateway",
-  }
-}
-EOF
-        destination = "local/config.alloy"
-        change_mode = "restart"
-      }
-
-      resources {
-        cpu    = 300
-        memory = 512
-      }
-
-      service {
-        name = "alloy-gateway"
-        port = "gateway_loki"
-        
-        tags = [
-          "traefik.enable=true",
-          "traefik.http.routers.alloy-gateway.rule=Host(`gateway.${host_url_suffix}`) && PathPrefix(`/loki/api/v1/push`)",
-          "traefik.http.routers.alloy-gateway.entrypoints=http",
-          "traefik.http.routers.alloy-gateway.service=alloy-gateway",
-          "traefik.http.services.alloy-gateway.loadbalancer.server.port=12346",
-        ]
-
-        check {
-          type     = "http"
-          path     = "/-/healthy"
           interval = "10s"
           timeout  = "5s"
         }

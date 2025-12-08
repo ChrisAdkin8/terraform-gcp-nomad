@@ -41,7 +41,7 @@ acl {
   enable_token_persistence = true
 
   tokens {
-    initial_management = "9a8977a7-3057-6653-a15e-6ec2928aec8b"
-    agent              = "9a8977a7-3057-6653-a15e-6ec2928aec8b"
+    initial_management = "826e0635-c06b-f1b6-f87c-d121caf02107"
+    agent              = "826e0635-c06b-f1b6-f87c-d121caf02107"
   }
 }

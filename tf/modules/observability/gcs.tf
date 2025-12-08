@@ -30,7 +30,7 @@ resource "google_storage_bucket" "loki" {
 } 
 
 resource "nomad_variable" "loki_gcs" {
-  path = "nomad/jobs/loki_gateway/loki_group/loki"
+  path = "nomad/jobs/loki/loki_group/loki"
   
   items = {
     gcs_service_account_key = base64decode(google_service_account_key.loki_key.private_key)
