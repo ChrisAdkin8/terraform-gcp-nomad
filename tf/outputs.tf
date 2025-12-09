@@ -33,3 +33,7 @@ output "consul_acl_bootstrap_token" {
   value     = var.initial_management_token
   sensitive = true
 }
+
+output "dns_managed_zone" {
+  value = data.google_compute_zones.default.names[0]
+}

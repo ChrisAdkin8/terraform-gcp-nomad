@@ -8,8 +8,8 @@ curl -v -X POST \
       }
     ]
   }' \
-  http://gateway.${host_url_suffix}.gcp.sbx.hashicorpdemo.com:8080/loki/api/v1/push
+  http://gateway.traefik-dc1.hc-5d73e0c79fbd4f85ab5895c8f37.gcp.sbx.hashicorpdemo.com:8080/loki/api/v1/push
 sleep 2
 curl -v -G \
   --data-urlencode 'query={job="test", source="curl"}' \
-  http://loki.${host_url_suffix}.gcp.sbx.hashicorpdemo.com:8080/loki/api/v1/query   
+  http://loki.traefik-dc1.hc-5d73e0c79fbd4f85ab5895c8f37.gcp.sbx.hashicorpdemo.com:8080/loki/api/v1/query

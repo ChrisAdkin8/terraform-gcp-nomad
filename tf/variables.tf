@@ -12,6 +12,11 @@ variable "zone" {
   default     = null
 }
 
+variable "base_domain" {
+  description = "DNS base domain"
+  default     = null
+}
+
 variable "consul_server_instances" {
   description = "The number of server instances to create"
   default     = 1

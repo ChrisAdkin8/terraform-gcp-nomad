@@ -12,11 +12,11 @@ module "secondary_nomad" {
   region                 = var.secondary_region
   subnet_self_link       = module.network.secondary_subnet_self_link
   zone                   = data.google_compute_zones.secondary.names[0]
+  base_domain            = local.base_domain  
 
   depends_on = [
-    module.network,
-    consul_acl_policy.secondary_nomad_agent
-  ]
+    consul_acl_policy.secondary_nomad_agent,
+    module.network ]
 }
 
 module "nomad" {
@@ -33,11 +33,11 @@ module "nomad" {
   region                 = var.region
   subnet_self_link       = module.network.subnet_self_link
   zone                   = data.google_compute_zones.default.names[0]
+  base_domain            = local.base_domain  
 
   depends_on = [
-    module.network,
-    consul_acl_policy.nomad_agent
-  ]
+    consul_acl_policy.nomad_agent,
+    module.network ]
 }
 
 module "observability" {
@@ -45,7 +45,7 @@ module "observability" {
   nomad_addr            = "http://${module.nomad.fqdn}:4646"
   consul_token          = var.initial_management_token
   data_center           = "dc1" 
-  dns_zone              = local.base_domain
+  base_domain           = local.base_domain
   region                = var.region 
   loki_bucket_name      = "loki_bucket"
   bigquery_dataset_name = "loki_logs"

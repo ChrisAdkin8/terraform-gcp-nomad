@@ -1,4 +1,4 @@
-job "alloy_agent" {
+job "collector" {
   datacenters = ["dc1"]
   type        = "system"
 
@@ -169,7 +169,7 @@ EOF
       }
 
       service {
-        name = "alloy-agent"
+        name = "collector"
         port = "http"
 
         tags = [

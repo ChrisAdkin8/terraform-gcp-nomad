@@ -16,6 +16,12 @@ resource "google_compute_subnetwork" "default" {
   private_ip_google_access = true
   region                   = var.region
   stack_type               = "IPV4_ONLY"
+
+  log_config {
+    aggregation_interval = "INTERVAL_5_SEC"
+    flow_sampling        = 1.0
+    metadata             = "INCLUDE_ALL_METADATA"
+  }
 }
 
 resource "google_compute_router" "default" {
@@ -45,6 +51,12 @@ resource "google_compute_subnetwork" "secondary" {
   private_ip_google_access = true
   region                   = var.secondary_region
   stack_type               = "IPV4_ONLY"
+
+  log_config {
+    aggregation_interval = "INTERVAL_5_SEC"
+    flow_sampling        = 1.0
+    metadata             = "INCLUDE_ALL_METADATA"
+  }
 }
 
 resource "google_compute_router" "secondary" {
@@ -62,6 +74,16 @@ resource "google_compute_router_nat" "secondary" {
 
   log_config {
     enable = true
-    filter = "ERRORS_ONLY"
+    filter = "ALL"
   }
+}
+resource "google_compute_subnetwork" "proxy_only" {
+  for_each = toset(["europe-west1", "europe-west2"])
+
+  name          = "${var.name_prefix}-proxy-only-${each.key}"
+  region        = each.key
+  network       = google_compute_network.default.self_link
+  ip_cidr_range = each.key == "europe-west1" ? "10.100.0.0/24" : "10.101.0.0/24"
+  purpose       = "REGIONAL_MANAGED_PROXY"
+  role          = "ACTIVE"
 }

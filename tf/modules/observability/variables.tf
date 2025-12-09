@@ -1,22 +1,22 @@
-variable nomad_addr { }
+variable "nomad_addr" { }
 
-variable consul_token {
+variable "consul_token" {
     description = "Consul token to given Traefik access to the Consul Catalog"
     type        = string
 }
-variable data_center {
+variable "data_center" {
     description = "Nomad data center"
     type        = string
 }
 
-variable dns_zone {
+variable "base_domain" {
     description = "GCP dns zone"
     type        = string
 }
 
-variable region {
-    description = "GCP region to create GCS bucket in"
-    type        = string
+variable "region" {
+  description = "GCP region to create GCS bucket in"
+  type        = string
 }
 
 variable "loki_bucket_name" {

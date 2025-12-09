@@ -70,7 +70,7 @@ loki.write "loki_local" {
   }
   
   external_labels = {
-    source = "alloy-gateway",
+    source = "gateway",
   }
 }
 EOF
@@ -96,11 +96,17 @@ EOF
 
         check {
           type     = "http"
-          port     = "ui"
+          port     = "ui"           
           path     = "/-/ready"
-          interval = "10s"
-          timeout  = "5s"
-        }
+          interval = "15s"          
+          timeout  = "10s"          
+          
+          check_restart {
+            limit           = 3     
+            grace           = "30s"
+            ignore_warnings = true
+          }
+        }      
       }
     }
   }

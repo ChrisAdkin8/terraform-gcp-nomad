@@ -71,11 +71,15 @@ job "traefik" {
     insecure  = true
 
 [log]
-    level = "INFO"
+    level  = "DEBUG"
     format = "common"
 
 [accessLog]
-    filePath = "/dev/null"
+    format = "json"
+    [accessLog.fields]
+        defaultMode = "keep"
+        [accessLog.fields.headers]
+            defaultMode = "keep"
 
 [serversTransport]
     maxIdleConnsPerHost = 200

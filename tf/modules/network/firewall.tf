@@ -122,3 +122,26 @@ resource "google_compute_firewall" "nomad_client" {
     "nomad-client",
   ]
 }
+
+resource "google_compute_firewall" "allow_observability_internal" {
+  name    = "allow-observability-internal"
+  network = google_compute_network.default.name
+
+  allow {
+    protocol = "tcp"
+    ports    = ["3100", "12345", "12346"]
+  }
+
+ source_tags = [
+    "nomad-server",
+    "nomad-client",
+  ]
+
+  target_tags = [
+    "nomad-client",
+  ]
+
+  source_ranges = ["10.128.0.0/16"]
+  
+  description = "Allow internal observability traffic (Loki, Alloy gateway)"
+}

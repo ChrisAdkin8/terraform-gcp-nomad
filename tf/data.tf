@@ -1,5 +1,7 @@
 data "google_project" "default" {}
 
+data "google_client_config" "current" {}
+
 data "google_compute_zones" "default" {
   region = var.region
   status = "UP"
@@ -20,7 +22,7 @@ data "http" "mgmt_ip" {
   }
 }
 
-data "external" "dns_zone" {
+data "external" "base_domain" {
   program = [
     "bash", "-c",
     "zone=$(gcloud dns managed-zones list --format='value(dnsName)' --limit=1 | awk -F. '{print $(NF-4)\".\"$(NF-3)\".\"$(NF-2)\".\"$(NF-1)}'); echo \"{\\\"domain\\\": \\\"$zone\\\"}\""
