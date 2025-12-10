@@ -2,6 +2,7 @@ module "secondary_nomad" {
   source = "./modules/nomad"
 
   create_nomad_cluster   = var.create_secondary_nomad_cluster
+  create_dns_record      = false   
   datacenter             = var.secondary_datacenter
   gcs_bucket             = google_storage_bucket.default.name
   name_prefix            = local.secondary_name_prefix
@@ -23,6 +24,7 @@ module "nomad" {
   source = "./modules/nomad"
 
   create_nomad_cluster   = var.create_nomad_cluster
+  create_dns_record      = true 
   datacenter             = var.datacenter
   gcs_bucket             = google_storage_bucket.default.name
   name_prefix            = local.name_prefix

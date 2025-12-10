@@ -32,6 +32,6 @@ telemetry {
 acl {
   enabled = true
   tokens {
-    agent = "438602e6-3a2d-6830-1bec-2450d29337d8"
+    agent = "ca0e1a12-1d51-99a9-3925-442b9ed74b86"
   }
 }

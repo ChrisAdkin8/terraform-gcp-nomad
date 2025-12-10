@@ -136,3 +136,9 @@ variable "nomad_client_disk_size" {
   description = "The disk size to use for Nomad clients"
   default     = 20
 }
+
+variable "create_dns_record" {
+  description = "Flag to determine whether DNS records are created for the traefik API and observability endpoints" 
+  type        = bool
+  default     = false
+}
