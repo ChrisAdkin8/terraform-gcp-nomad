@@ -77,7 +77,7 @@ flowchart TB
 ```
 ## Performing A Basic Smoke Test
 
-1. Submit a simple payload to the Gateway Loki endpoint:
+### Step 1: Submit a simple payload to the Gateway Loki endpoint:
 
 ```
 curl -X POST \
@@ -93,7 +93,7 @@ curl -X POST \
 
 Once the lab environment has been built, the gateway Loki endpoint is visible from ```terraform output```
 
-2. Query the Loki endpoint to ensxure that the test pauload has made its way from the gateway to Loki
+### Step 2: Query the Loki endpoint to ensxure that the test pauload has made its way from the gateway to Loki
 
 ```
 curl -v -G \  
@@ -127,14 +127,7 @@ If the simple test has been successful, the output from this command should like
 * Connection #0 to host loki.traefik-dc1.hc-46d118b4f2d846539719e6879b9.gcp.sbx.hashicorpdemo.com left intact
 ```
 
-## Prerequisites
-
-- `curl` installed
-- `gsutil` installed and authenticated (`gcloud auth login`)
-- Access to the Gateway and Loki endpoint
-- Access to the GCS bucket
-
-## Important: Understanding Loki's Write Behavior
+**Important: Understanding Loki's Write Behavior**
 
 Loki does **not** write to GCS immediately. Data is batched in memory before being flushed to object storage. Test entries won't appear in the bucket until:
 
@@ -142,52 +135,8 @@ Loki does **not** write to GCS immediately. Data is batched in memory before bei
 - A flush is manually triggered
 - Loki restarts
 
-## Step 1: Verify Loki is Healthy
 
-```bash
-# Check the ready endpoint
-curl http://<LOKI_URL>:3100/ready
-
-# Check metrics
-curl http://<LOKI_URL>:3100/metrics | grep loki_ingester
-```
-
-## Step 2: Push Test Data
-
-```bash
-#!/bin/bash
-LOKI_URL="http://<YOUR_LOKI_ENDPOINT>:3100"
-TIMESTAMP=$(date +%s)000000000
-TEST_ID="gcs-test-$(date +%s)"
-
-curl -v -X POST \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"streams\": [{
-      \"stream\": {\"job\": \"gcs-test\", \"source\": \"manual\", \"test_id\": \"$TEST_ID\"},
-      \"values\": [[\"$TIMESTAMP\", \"Test log entry for GCS verification\"]]
-    }]
-  }" \
-  "$LOKI_URL/loki/api/v1/push"
-```
-
-## Step 3: Query Loki to Confirm Ingestion
-
-Before checking GCS, verify Loki has ingested the data:
-
-```bash
-# Query by job label
-curl -G "$LOKI_URL/loki/api/v1/query" \
-  --data-urlencode 'query={job="gcs-test"}' | jq .
-
-# Query with time range
-curl -G "$LOKI_URL/loki/api/v1/query_range" \
-  --data-urlencode 'query={job="gcs-test"}' \
-  --data-urlencode "start=$(date -d '1 hour ago' +%s)" \
-  --data-urlencode "end=$(date +%s)" | jq .
-```
-
-## Step 4: Force a Flush to GCS
+### Step 3: Force a Flush to GCS
 
 ```bash
 # Trigger flush via Loki's API
@@ -199,7 +148,7 @@ nomad alloc restart -task loki <alloc-id>
 
 Wait 10-30 seconds for the flush to complete.
 
-## Step 5: Inspect the GCS Bucket
+### Step 4: Inspect the GCS Bucket
 
 ### List Bucket Contents
 
