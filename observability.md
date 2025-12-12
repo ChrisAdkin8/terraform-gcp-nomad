@@ -1,4 +1,81 @@
-# Loki GCS Storage Troubleshooting Guide
+# The Grafana Based Observability Stack
+
+## Architecture
+
+```mermaid
+flowchart TB
+    subgraph Internet
+        users([Users / Clients])
+    end
+
+    subgraph GCP["Google Cloud Platform"]
+        lb[["GCP Load Balancer"]]
+        
+        subgraph nomad["Nomad Cluster"]
+            subgraph ingress["Ingress Layer"]
+                traefik["Traefik\n(Reverse Proxy)"]
+            end
+            
+            subgraph observability["Observability Stack"]
+                grafana["Grafana\n(Dashboards)"]
+                loki["Loki\n(Log Aggregation)"]
+                
+                subgraph alloy_stack["Alloy"]
+                    alloy_gw["Alloy Gateway\n(Receiver)"]
+                    alloy_collectors["Alloy Collectors\n(Agents)"]
+                end
+            end
+        end
+        
+        subgraph consul_cluster["Service Mesh"]
+            consul[("Consul\n(Service Catalog)")]
+        end
+        
+        subgraph storage["Storage"]
+            gcs[("GCS Bucket\n(Loki Chunks)")]
+        end
+    end
+
+    %% Traffic flow
+    users --> lb
+    lb --> traefik
+    
+    %% Traefik routing to services
+    traefik --> grafana
+    traefik --> loki
+    traefik --> alloy_gw
+    
+    %% Consul service discovery
+    consul <-.->|service discovery| traefik
+    consul <-.->|register| grafana
+    consul <-.->|register| loki
+    consul <-.->|register| alloy_gw
+    
+    %% Alloy data flow
+    alloy_collectors -->|push logs| alloy_gw
+    alloy_gw -->|forward| loki
+    
+    %% Loki storage
+    loki -->|store/query| gcs
+    
+    %% Grafana queries
+    grafana -.->|query| loki
+
+    %% Styling
+    classDef gcp fill:#4285f4,stroke:#1a73e8,color:#fff
+    classDef nomad fill:#00ca8e,stroke:#00a876,color:#fff
+    classDef consul fill:#dc477d,stroke:#b93366,color:#fff
+    classDef storage fill:#f9ab00,stroke:#e69500,color:#000
+    classDef traefik fill:#24a1c1,stroke:#1d8aa8,color:#fff
+    classDef observability fill:#ff6b35,stroke:#e55a2b,color:#fff
+    
+    class lb gcp
+    class traefik traefik
+    class consul consul
+    class gcs storage
+    class grafana,loki,alloy_gw,alloy_collectors observability
+```
+
 
 This guide covers how to test that Loki is correctly ingesting data and persisting it to a GCS bucket.
 
