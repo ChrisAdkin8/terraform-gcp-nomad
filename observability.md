@@ -13,26 +13,26 @@ flowchart TB
         
         subgraph nomad["Nomad Cluster"]
             subgraph ingress["Ingress Layer"]
-                traefik["Traefik\n(Reverse Proxy)"]
+                traefik["Traefik (Reverse Proxy)"]
             end
             
             subgraph observability["Observability Stack"]
-                grafana["Grafana\n(Dashboards)"]
-                loki["Loki\n(Log Aggregation)"]
+                grafana["Grafana (Dashboards)"]
+                loki["Loki (Log Aggregation)"]
                 
                 subgraph alloy_stack["Alloy"]
-                    alloy_gw["Alloy Gateway\n(Receiver)"]
-                    alloy_collectors["Alloy Collectors\n(Agents)"]
+                    alloy_gw["Alloy Gateway (Receiver)"]
+                    alloy_collectors["Alloy Collectors (Agents)"]
                 end
             end
         end
         
         subgraph consul_cluster["Service Mesh"]
-            consul[("Consul\n(Service Catalog)")]
+            consul[("Consul (Service Catalog)")]
         end
         
         subgraph storage["Storage"]
-            gcs[("GCS Bucket\n(Loki Chunks)")]
+            gcs[("GCS Bucket (Loki Chunks)")]
         end
     end
 
