@@ -75,9 +75,25 @@ flowchart TB
     class gcs storage
     class grafana,loki,alloy_gw,alloy_collectors observability
 ```
+## Performing A Basic Smoke Test
+
+Submit a simple payload to the Gateway Loki endpoint:
+
+```
+curl -v -X POST \
+  -H "Content-Type: application/json" \
+  -d '{
+    "streams": [
+      {
+        "stream": {"job": "test", "source": "curl"},
+        "values": [["'$(date +%s)000000000'", "Test log entry"]]
+      }
+    ]
+  }' \
+  http://gateway-api.traefik-dc1.<your base domain goes here>:8080/loki/api/v1/push
+```
 
 
-This guide covers how to test that Loki is correctly ingesting data and persisting it to a GCS bucket.
 
 ## Prerequisites
 
