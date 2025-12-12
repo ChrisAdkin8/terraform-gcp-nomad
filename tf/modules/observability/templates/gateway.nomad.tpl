@@ -84,14 +84,40 @@ EOF
       }
 
       service {
-        name = "gateway"
+        name = "gateway-api"
         port = "loki"
         
         tags = [
           "traefik.enable=true",
-          "traefik.http.routers.gateway.rule=Host(`gateway.${host_url_suffix}`) && PathPrefix(`/loki/api/v1/push`)",
-          "traefik.http.routers.gateway.entrypoints=http",
-          "traefik.http.services.gateway.loadbalancer.server.port=12346",
+          "traefik.http.routers.gateway-api.rule=Host(`gateway-api.${host_url_suffix}`) && PathPrefix(`/loki/api/v1/push`)",
+          "traefik.http.routers.gateway-api.entrypoints=http",
+          "traefik.http.services.gateway-api.loadbalancer.server.port=12346",
+        ]
+
+        check {
+          type     = "http"
+          port     = "ui"           
+          path     = "/-/ready"
+          interval = "15s"          
+          timeout  = "10s"          
+          
+          check_restart {
+            limit           = 3     
+            grace           = "30s"
+            ignore_warnings = true
+          }
+        }      
+      }
+
+      service {
+        name = "gateway-ui"
+        port = "ui"
+        
+        tags = [
+          "traefik.enable=true",
+          "traefik.http.routers.gateway-ui.rule=Host(`gateway-ui.${host_url_suffix}`)",
+          "traefik.http.routers.gateway-ui.entrypoints=http",
+          "traefik.http.services.gateway-ui.loadbalancer.server.port=12345",
         ]
 
         check {

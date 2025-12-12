@@ -16,15 +16,3 @@ resource "google_dns_record_set" "traefik_api" {
   ttl          = 60
   rrdatas      = [google_compute_forwarding_rule.traefik_api.ip_address]
 }
-
-data "google_client_config" "current" {}
-
-resource "google_dns_record_set" "observability_endpoints" {
-  count = var.create_nomad_cluster  && var.create_dns_record ? 1 : 0
-
-  managed_zone = data.google_dns_managed_zone.default.name
-  name         = "*.traefik-${var.datacenter}.${data.google_client_config.current.project}.${var.base_domain}."
-  type         = "A"
-  ttl          = 60
-  rrdatas      = [google_compute_forwarding_rule.traefik_api.ip_address]
-}

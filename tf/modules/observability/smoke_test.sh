@@ -8,8 +8,8 @@ curl -v -X POST \
       }
     ]
   }' \
-  http://gateway.traefik-dc1.hc-1ef3756b9c9f4374ba0c41d4997.gcp.sbx.hashicorpdemo.com.gcp.sbx.hashicorpdemo.com:8080/loki/api/v1/push
+  http://gateway.traefik-dc1.hc-46d118b4f2d846539719e6879b9.gcp.sbx.hashicorpdemo.com.gcp.sbx.hashicorpdemo.com:8080/loki/api/v1/push
 sleep 2
 curl -v -G \
   --data-urlencode 'query={job="test", source="curl"}' \
-  http://loki.traefik-dc1.hc-1ef3756b9c9f4374ba0c41d4997.gcp.sbx.hashicorpdemo.com.gcp.sbx.hashicorpdemo.com:8080/loki/api/v1/query   
+  http://loki.traefik-dc1.hc-46d118b4f2d846539719e6879b9.gcp.sbx.hashicorpdemo.com.gcp.sbx.hashicorpdemo.com:8080/loki/api/v1/query   
