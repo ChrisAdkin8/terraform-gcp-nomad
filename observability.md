@@ -77,23 +77,55 @@ flowchart TB
 ```
 ## Performing A Basic Smoke Test
 
-Submit a simple payload to the Gateway Loki endpoint:
+1. Submit a simple payload to the Gateway Loki endpoint:
 
 ```
-curl -v -X POST \
+curl -X POST \
   -H "Content-Type: application/json" \
+  "http://gateway-api.traefik-dc1.hc-46d118b4f2d846539719e6879b9.gcp.sbx.hashicorpdemo.com:8080/loki/api/v1/push" \
   -d '{
-    "streams": [
-      {
-        "stream": {"job": "test", "source": "curl"},
-        "values": [["'$(date +%s)000000000'", "Test log entry"]]
-      }
-    ]
-  }' \
-  http://gateway-api.traefik-dc1.<your base domain goes here>:8080/loki/api/v1/push
+    "streams": [{
+      "stream": { "job": "test", "source": "curl" },
+      "values": [[ "'$(date +%s)000000000'", "Test log message" ]]
+    }]
+  }'
 ```
 
+Once the lab environment has been built, the gateway Loki endpoint is visible from ```terraform output```
 
+2. Query the Loki endpoint to ensxure that the test pauload has made its way from the gateway to Loki
+
+```
+curl -v -G \  
+  --data-urlencode 'query={job="test", source="curl"}' \
+  http://loki.traefik-dc1.hc-46d118b4f2d846539719e6879b9.gcp.sbx.hashicorpdemo.com:8080/loki/api/v1/query
+```
+
+If the simple test has been successful, the output from this command should like similar to this, the contents of the result array is all important here:
+
+```
+  http://loki.traefik-dc1.hc-46d118b4f2d846539719e6879b9.gcp.sbx.hashicorpdemo.com:8080/loki/api/v1/query          
+* Host loki.traefik-dc1.hc-46d118b4f2d846539719e6879b9.gcp.sbx.hashicorpdemo.com:8080 was resolved.
+* IPv6: (none)
+* IPv4: 35.206.181.151
+*   Trying 35.206.181.151:8080...
+* Connected to loki.traefik-dc1.hc-46d118b4f2d846539719e6879b9.gcp.sbx.hashicorpdemo.com (35.206.181.151) port 8080
+> GET /loki/api/v1/query?query=%7bjob%3d%22test%22%2c+source%3d%22curl%22%7d HTTP/1.1
+> Host: loki.traefik-dc1.hc-46d118b4f2d846539719e6879b9.gcp.sbx.hashicorpdemo.com:8080
+> User-Agent: curl/8.7.1
+> Accept: */*
+> 
+* Request completely sent off
+< HTTP/1.1 200 OK
+< content-length: 1709
+< content-type: application/json; charset=utf-8
+< date: Fri, 12 Dec 2025 20:06:09 GMT
+< results-cache-gen-number: 
+< via: 1.1 google
+< 
+{"status":"success","data":{"resultType":"streams","result":[{"stream":{"job":"test","source":"curl"},"values":[["1765569953149339232","Test log message"]]}],"stats":{"summary":{"bytesProcessedPerSecond":17115,"linesProcessedPerSecond":1069,"totalBytesProcessed":16,"totalLinesProcessed":1,"execTime":0.000935,"queueTime":0.000106,"subqueries":0,"totalEntriesReturned":1,"splits":0,"shards":0,"totalPostFilterLines":1,"totalStructuredMetadataBytesProcessed":0},"querier":{"store":{"totalChunksRef":0,"totalChunksDownloaded":0,"chunksDownloadTime":0,"chunk":{"headChunkBytes":0,"headChunkLines":0,"decompressedBytes":0,"decompressedLines":0,"compressedBytes":0,"totalDuplicates":0,"postFilterLines":0,"headChunkStructuredMetadataBytes":0,"decompressedStructuredMetadataBytes":0}}},"ingester":{"totalReached":1,"totalChunksMatched":1,"totalBatches":2,"totalLinesSent":1,"store":{"totalChunksRef":0,"totalChunksDownloaded":0,"chunksDownloadTime":0,"chunk":{"headChunkBytes":16,"headChunkLines":1,"decompressedBytes":0,"decompressedLines":0,"compressedBytes":0,"totalDuplicates":0,"postFilterLines":1,"headChunkStructuredMetadataBytes":0,"decompressedStructuredMetadataBytes":0}}},"cache":{"chunk":{"entriesFound":0,"entriesRequested":0,"entriesStored":0,"bytesReceived":0,"bytesSent":0,"requests":0,"downloadTime":0},"index":{"entriesFound":0,"entriesRequested":0,"entriesStored":0,"bytesReceived":0,"bytesSent":0,"requests":0,"downloadTime":0},"result":{"entriesFound":0,"entriesRequested":0,"entriesStored":0,"bytesReceived":0,"bytesSent":0,"requests":0,"downloadTime":0},"statsResult":{"entriesFound":0,"entriesRequested":0,"entriesStored":0,"bytesReceived":0,"bytesSent":0,"requests":0,"downloadTime":0}}}}}
+* Connection #0 to host loki.traefik-dc1.hc-46d118b4f2d846539719e6879b9.gcp.sbx.hashicorpdemo.com left intact
+```
 
 ## Prerequisites
 
