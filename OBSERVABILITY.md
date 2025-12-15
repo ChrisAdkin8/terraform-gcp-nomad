@@ -1,6 +1,6 @@
 # The Grafana Based Observability Stack
 
-## Architecture
+## High Level Architecture
 
 ```mermaid
 flowchart TB
@@ -75,6 +75,54 @@ flowchart TB
     class gcs storage
     class grafana,loki,alloy_gw,alloy_collectors observability
 ```
+
+## Collector Pipeline Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Each Nomad Node (system job)                                                │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │ alloy-collector                                                      │   │
+│  │                                                                      │   │
+│  │  ┌──────────────────┐     ┌─────────────────────┐                   │   │
+│  │  │ discovery.nomad  │────►│ discovery.relabel   │                   │   │
+│  │  │ (service disco)  │     │ (stdout + stderr)   │                   │   │
+│  │  └──────────────────┘     │                     │                   │   │
+│  │                           │ Labels:             │                   │   │
+│  │                           │ • job               │                   │   │
+│  │                           │ • namespace         │                   │   │
+│  │                           │ • task_group        │──┐                │   │
+│  │                           │ • task              │  │                │   │
+│  │                           │ • alloc_id          │  │                │   │
+│  │                           │ • stream            │  │                │   │
+│  │                           └─────────────────────┘  │                │   │
+│  │                                                    ▼                │   │
+│  │  ┌──────────────────┐     ┌─────────────────────────────────┐      │   │
+│  │  │ local.file_match │────►│ loki.source.file                │      │   │
+│  │  │ (fallback glob)  │     │         │                       │      │   │
+│  │  └──────────────────┘     │         ▼                       │      │   │
+│  │                           │ loki.process (add node label)   │      │   │
+│  │                           │         │                       │      │   │
+│  │  ┌──────────────────┐     │         ▼                       │      │   │
+│  │  │ local.file_match │────►│ loki.write.gateway ─────────────┼──────┼───┼──►
+│  │  │ (system logs)    │     └─────────────────────────────────┘      │   │
+│  │  └──────────────────┘                                              │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                                                              │
+                                                                              ▼
+                                                              ┌───────────────────────┐
+                                                              │       Gateway         │
+                                                              │                       │
+                                                              │  loki.source.api      │
+                                                              │        │              │
+                                                              │        ▼              │
+                                                              │  loki.write ──────────┼──► Loki
+                                                              └───────────────────────┘
+Label
+
+
 ## Performing A Basic Smoke Test
 
 ### Step 1: Submit a simple payload to the Gateway Loki endpoint:
