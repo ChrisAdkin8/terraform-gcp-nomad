@@ -120,6 +120,7 @@ flowchart TB
                                                               │        ▼              │
                                                               │  loki.write ──────────┼──► Loki
                                                               └───────────────────────┘
+```
 
 ## Performing A Basic Smoke Test
 
