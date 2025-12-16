@@ -9,5 +9,10 @@ terraform {
       source  = "hashicorp/nomad"
       version = "~> 2.0"
     }
+
+    grafana = {
+      source  = "grafana/grafana"
+      version = "~> 4.20.0"
+    }
   }
 }

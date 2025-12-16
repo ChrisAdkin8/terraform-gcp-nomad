@@ -1,10 +1,8 @@
 job "grafana" {
   datacenters = ["dc1"]
   type        = "service"
-
   group "monitoring" {
     count = 1
-
     restart {
       attempts = 3
       delay    = "30s"
@@ -32,6 +30,9 @@ job "grafana" {
       config {
         image = "grafana/grafana:10.2.3"
         ports = ["grafana"]
+        volumes = [
+          "local/provisioning:/etc/grafana/provisioning",
+        ]
       }
       
       volume_mount {
@@ -48,22 +49,18 @@ job "grafana" {
         GF_SERVER_ENABLE_GZIP                  = "true"
         GF_LOG_LEVEL                           = "warn"
         
-        # Database optimizations
         GF_DATABASE_WAL                        = "true"
         GF_DATABASE_CACHE_MODE                 = "shared"
         GF_DATABASE_LOG_QUERIES                = "false"
         
-        # Connection and proxy settings
-        GF_DATAPROXY_TIMEOUT                   = "60"
+        GF_DATAPROXY_TIMEOUT                   = "120"
         GF_DATAPROXY_KEEP_ALIVE_SECONDS        = "300"
         GF_DATAPROXY_MAX_IDLE_CONNECTIONS      = "100"
         GF_DATAPROXY_IDLE_CONN_TIMEOUT_SECONDS = "90"
         
-        # Performance settings
         GF_RENDERING_CONCURRENT_RENDER_LIMIT   = "10"
         GF_DASHBOARDS_MIN_REFRESH_INTERVAL     = "5s"
         
-        # Disable unnecessary features
         GF_ANALYTICS_REPORTING_ENABLED         = "false"
         GF_ANALYTICS_CHECK_FOR_UPDATES         = "false"
         GF_QUERY_HISTORY_ENABLED               = "false"
@@ -78,14 +75,15 @@ apiVersion: 1
 datasources:
   - name: Loki
     type: loki
+    uid: loki
     access: proxy
-    url: http://loki.${host_url_suffix}:3100
+    url: http://loki.${host_url_suffix}:8080
     isDefault: true
     editable: true
     jsonData:
       maxLines: 1000
-      timeout: 60
-      queryTimeout: "60s"
+      timeout: 120
+      queryTimeout: "120s"
       httpHeaderName1: "X-Scope-OrgID"
     secureJsonData:
       httpHeaderValue1: "tenant1"
@@ -94,6 +92,51 @@ EOF
         change_mode = "restart"
       }
       
+      template {
+        data = <<EOF
+apiVersion: 1
+providers:
+  - name: 'Nomad Dashboards'
+    orgId: 1
+    folder: 'Nomad'
+    folderUid: 'nomad-folder'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
+EOF
+        destination = "local/provisioning/dashboards/dashboards.yaml"
+        change_mode = "restart"
+      }
+
+      template {
+        data = <<EOF
+apiVersion: 1
+apps: []
+EOF
+        destination = "local/provisioning/plugins/plugins.yaml"
+        change_mode = "restart"
+      }
+      
+      template {
+        data = <<EOF
+notifiers: []
+EOF
+        destination = "local/provisioning/notifiers/notifiers.yaml"
+        change_mode = "restart"
+      }
+      
+      template {
+        data = <<EOF
+apiVersion: 1
+groups: []
+EOF
+        destination = "local/provisioning/alerting/alerting.yaml"
+        change_mode = "restart"
+      }
+
       resources {
         cpu    = 2000
         memory = 4096

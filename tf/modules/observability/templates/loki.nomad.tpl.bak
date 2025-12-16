@@ -163,7 +163,7 @@ EOF
         
         tags = [
           "traefik.enable=true",
-          "traefik.http.routers.loki.rule=Host(`loki.${host_url_suffix}`)",
+          "traefik.http.routers.loki.rule=Host(`loki.${host_url_suffix}`) && (PathPrefix(`/loki/api/v1/push`) || PathPrefix(`/loki/api/v1/query`) || PathPrefix(`/loki/api/v1/metrics`) || PathPrefix(`/loki/api/v1/flush`))",
           "traefik.http.routers.loki.entrypoints=http",
           "traefik.http.services.loki.loadbalancer.server.port=3100"
         ]
