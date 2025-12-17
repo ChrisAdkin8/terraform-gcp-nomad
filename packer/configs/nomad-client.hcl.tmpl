@@ -45,7 +45,12 @@ client {
 plugin "docker" {
   config {
     allow_privileged = true
+
+    volumes {
+      enabled= true
+    }
   }
+
   docker.volumes.enabled = true
 }
 

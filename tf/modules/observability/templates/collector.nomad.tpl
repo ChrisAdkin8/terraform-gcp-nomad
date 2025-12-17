@@ -45,6 +45,34 @@ job "collector" {
           "--storage.path=/var/lib/alloy/data",
           "local/config.alloy",
         ]
+
+        mount {
+          type     = "bind"
+          target   = "/opt/nomad/data/alloc"
+          source   = "/opt/nomad/data/alloc"
+          readonly = true
+        }
+
+        mount {
+          type     = "bind"
+          target   = "/var/log"
+          source   = "/var/log"
+          readonly = true
+        }
+
+        mount {
+          type     = "bind"
+          target   = "/host/proc"
+          source   = "/proc"
+          readonly = true
+        }
+
+        mount {
+          type     = "bind"
+          target   = "/host/sys"
+          source   = "/sys"
+          readonly = true
+        }
       }
 
       volume_mount {
@@ -138,7 +166,7 @@ discovery.relabel "nomad_stdout" {
     source_labels = ["__meta_nomad_alloc_id", "__meta_nomad_task"]
     separator     = ";"
     regex         = "(.+);(.+)"
-    replacement   = "/var/nomad/alloc/$1/alloc/logs/$2.stdout.*"
+    replacement   = "/opt/nomad/data/alloc/$1/alloc/logs/$2.stdout.*"
     target_label  = "__path__"
   }
 
@@ -210,7 +238,7 @@ discovery.relabel "nomad_stderr" {
     source_labels = ["__meta_nomad_alloc_id", "__meta_nomad_task"]
     separator     = ";"
     regex         = "(.+);(.+)"
-    replacement   = "/var/nomad/alloc/$1/alloc/logs/$2.stderr.*"
+    replacement   = "/opt/nomad/data/alloc/$1/alloc/logs/$2.stderr.*"
     target_label  = "__path__"
   }
 
@@ -226,7 +254,7 @@ discovery.relabel "nomad_stderr" {
 // ============================================================================
 
 loki.source.file "nomad_logs" {
-  targets = concat(
+  targets = array.concat(
     discovery.relabel.nomad_stdout.output,
     discovery.relabel.nomad_stderr.output,
   )
@@ -255,8 +283,8 @@ loki.process "add_metadata" {
 
 local.file_match "nomad_logs_fallback" {
   path_targets = [
-    {__path__ = "/var/nomad/alloc/*/alloc/logs/*.stdout.*"},
-    {__path__ = "/var/nomad/alloc/*/alloc/logs/*.stderr.*"},
+    {__path__ = "/opt/nomad/data/alloc/*/alloc/logs/*.stdout.[0-9]*"},
+    {__path__ = "/opt/nomad/data/alloc/*/alloc/logs/*.stderr.[0-9]*"},
   ]
   sync_period = "60s"
 }
@@ -269,7 +297,7 @@ loki.source.file "nomad_logs_fallback" {
 loki.process "fallback_labels" {
   // Extract labels from file path for tasks without services
   stage.regex {
-    expression = "/var/nomad/alloc/(?P<alloc_id>[^/]+)/alloc/logs/(?P<task>[^.]+)\\.(?P<stream>stdout|stderr)\\."
+    expression = "/opt/nomad/data/alloc/(?P<alloc_id>[^/]+)/alloc/logs/(?P<task>[^.]+)\\.(?P<stream>stdout|stderr)\\."
   }
 
   stage.labels {
