@@ -129,7 +129,7 @@ resource "google_compute_firewall" "allow_observability_internal" {
 
   allow {
     protocol = "tcp"
-    ports    = ["3000", "3100", "12345", "12346"]
+    ports    = ["3000", "3100", "12344", "12345", "12346"]
   }
 
  source_tags = [

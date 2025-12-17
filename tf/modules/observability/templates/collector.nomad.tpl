@@ -20,7 +20,7 @@ job "collector" {
 
     network {
       mode = "host"
-      port "http" { static = 12345 }
+      port "http" { static = 12344 }
     }
 
     volume "alloy_data" {
@@ -41,7 +41,7 @@ job "collector" {
 
         args = [
           "run",
-          "--server.http.listen-addr=0.0.0.0:12345",
+          "--server.http.listen-addr=0.0.0.0:12344",
           "--storage.path=/var/lib/alloy/data",
           "local/config.alloy",
         ]
@@ -346,10 +346,22 @@ EOH
       }
 
       service {
-        name     = "alloy-collector"
+        name     = "collector"
         port     = "http"
-        provider = "consul"
-        tags     = ["monitoring", "alloy", "logs"]
+   
+        tags = [
+          "monitoring", "alloy", "logs",
+          "traefik.enable=true",
+          "traefik.http.routers.collector.rule=Host(`collector.${host_url_suffix}`)",
+          "traefik.http.routers.collector.entrypoints=http",
+          "traefik.http.services.collector.loadbalancer.server.port=12344",
+          "traefik.http.middlewares.collector-headers.headers.customrequestheaders.Connection=keep-alive",
+          "traefik.http.middlewares.collector-timeout.buffering.maxRequestBodyBytes=0",
+          "traefik.http.middlewares.collector-timeout.buffering.memRequestBodyBytes=0",
+          "traefik.http.middlewares.collector-timeout.buffering.retryExpression=",
+          "traefik.http.routers.collector.middlewares=collector-headers",
+          "traefik.http.services.collector.loadbalancer.responseforwarding.flushinterval=100ms",
+        ]
 
         check {
           type     = "http"
