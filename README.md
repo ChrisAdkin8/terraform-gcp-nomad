@@ -283,8 +283,8 @@ terraform-gcp-nomad/
 │  │  │  └─────────────┘  └─────────────┘  └─────────────────────┘    │  │    │
 │  │  │                                                               │  │    │
 │  │  │  ┌─────────────┐  ┌─────────────────────────────────────┐     │  │    │
-│  │  │  │ Alloy GW    │  │         User Workloads              │     │  │    │
-│  │  │  │  :12346     │  │                                     │     │  │    │
+│  │  │  │ Alloy GW    │  │           Alloy collectors          │     │  │    │
+│  │  │  │  :12345     │  │                :12344               │     │  │    │
 │  │  │  └─────────────┘  └─────────────────────────────────────┘     │  │    │
 │  │  │                                                               │  │    │
 │  │  └───────────────────────────────────────────────────────────────┘  │    │
@@ -322,8 +322,8 @@ terraform-gcp-nomad/
                                        │ Store                 │
                                        ▼                       │
                             ┌─────────────────────┐            │
-                            │     GCS Bucket      │     Log Push from
-                            │  ┌───────┬───────┐  │     External Agents
+                            │     GCS Bucket      │      Log Push from
+                            │  ┌───────┬───────┐  │     Alloy Collectors
                             │  │Chunks │ Index │  │
                             │  └───────┴───────┘  │
                             └─────────────────────┘
@@ -347,6 +347,10 @@ terraform-gcp-nomad/
 | Loki gRPC | 9096 | TCP | gRPC API |
 | Grafana | 3000 | TCP | Dashboard UI |
 | Alloy Gateway | 12346 | TCP | Log ingestion endpoint |    
+
+## Observability Pipeline
+
+Detailed documentation on the observability pipeline can be found [here](OBSERVABILITY.md).
 
 ## Cleanup
 
