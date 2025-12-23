@@ -350,7 +350,7 @@ terraform-gcp-nomad/
 
 ## Observability Pipeline
 
-Detailed documentation on the observability pipeline can be found [here](OBSERVABILITY.md).
+Detailed documentation on the observability pipeline stack can be found [here](OBSERVABILITY.md).
 
 ## Cleanup
 
