@@ -65,7 +65,7 @@ telemetry {
 }
 
 consul {
-  token = "e635c415-3a72-438f-1d4d-891e4d7ea52d"
+  token = "d9a9063c-b184-656e-4c04-43237dcdf434"
   enabled = true
   service_identity {
     aud = ["consul.io"]
