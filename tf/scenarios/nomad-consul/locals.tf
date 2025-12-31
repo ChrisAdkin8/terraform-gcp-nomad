@@ -8,5 +8,4 @@ locals {
   consul_url            = "http://${module.consul.fqdn}:8500"
   secondary_consul_url  = "http://${module.secondary_consul.fqdn}:8500"
   base_domain           = data.external.base_domain.result.domain
-  project_id            = data.google_client_config.current.project
 }

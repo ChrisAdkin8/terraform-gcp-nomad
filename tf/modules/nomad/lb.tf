@@ -152,7 +152,7 @@ resource "google_compute_firewall" "traefik_api" {
 resource "google_compute_firewall" "traefik_ui" {
   name    = "${var.name_prefix}-traefik-ui"
   network = "${var.short_prefix}-vpc"
-
+ 
   allow {
     protocol = "tcp"
     ports    = ["8081"]

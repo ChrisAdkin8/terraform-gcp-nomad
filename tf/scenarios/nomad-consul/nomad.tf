@@ -1,6 +1,7 @@
 module "secondary_nomad" {
-  source = "./modules/nomad"
+  source = "../../modules/nomad"
 
+  project_id             = var.project_id
   create_nomad_cluster   = var.create_secondary_nomad_cluster
   create_dns_record      = false   
   datacenter             = var.secondary_datacenter
@@ -9,7 +10,6 @@ module "secondary_nomad" {
   short_prefix           = random_pet.default.id
   nomad_client_instances = var.secondary_nomad_client_instances
   nomad_server_instances = var.secondary_nomad_server_instances
-  project_id             = var.project_id
   region                 = var.secondary_region
   subnet_self_link       = module.network.secondary_subnet_self_link
   zone                   = data.google_compute_zones.secondary.names[0]
@@ -21,8 +21,9 @@ module "secondary_nomad" {
 }
 
 module "nomad" {
-  source = "./modules/nomad"
+  source = "../../modules/nomad"
 
+  project_id             = var.project_id
   create_nomad_cluster   = var.create_nomad_cluster
   create_dns_record      = true 
   datacenter             = var.datacenter
@@ -31,7 +32,6 @@ module "nomad" {
   short_prefix           = random_pet.default.id
   nomad_client_instances = var.nomad_client_instances
   nomad_server_instances = var.nomad_server_instances
-  project_id             = var.project_id
   region                 = var.region
   subnet_self_link       = module.network.subnet_self_link
   zone                   = data.google_compute_zones.default.names[0]
@@ -43,7 +43,9 @@ module "nomad" {
 }
 
 module "observability" {
-  source                = "./modules/observability"
+  source                = "../../modules/observability"
+
+  project_id            = var.project_id
   nomad_addr            = "http://${module.nomad.fqdn}:4646"
   consul_token          = var.initial_management_token
   data_center           = "dc1" 

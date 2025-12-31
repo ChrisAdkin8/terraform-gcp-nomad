@@ -7,6 +7,7 @@ resource "google_service_account" "default" {
 }
 
 resource "google_project_iam_member" "default" {
+  project = var.project_id
   for_each = toset([
     "roles/artifactregistry.reader",
     "roles/compute.viewer",
@@ -15,7 +16,6 @@ resource "google_project_iam_member" "default" {
     "roles/stackdriver.resourceMetadata.writer",
     "roles/storage.objectViewer",
   ])
-  project = var.project_id
   role    = each.key
   member  = "serviceAccount:${google_service_account.default.email}"
 }

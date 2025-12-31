@@ -1,3 +1,8 @@
+variable "project_id" {
+  description = "Default GCP project id"
+  type        = string
+}
+
 variable "nomad_addr" { }
 
 variable "consul_token" {

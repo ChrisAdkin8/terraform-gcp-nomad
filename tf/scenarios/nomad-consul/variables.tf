@@ -1,11 +1,10 @@
+variable "project_id" {
+  description = "Default GCP project_id"
+  type        = string
+}
 variable "region" {
   description = "The GCP region where resources should be created"
   default     = "europe-west1"
-}
-
-variable "project_id" {
-  description = "Default GCP project id"
-  type        = string  
 }
 
 variable "zone" {
@@ -36,6 +35,11 @@ variable "nomad_client_instances" {
 variable "secondary_consul_server_instances" {
   description = "The number of server instances to create"
   default     = 1
+}
+
+variable "initial_management_token" {
+  description = "Seed token for bootstrapping Consul's ACL system"
+  type        = string
 }
 
 variable "secondary_nomad_server_instances" {

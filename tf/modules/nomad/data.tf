@@ -1,11 +1,11 @@
 data "google_compute_image" "almalinux_nomad_server" {
   family  = "almalinux-nomad-server"
-  project = var.project_id
+  project = local.project_id
 }
 
 data "google_compute_image" "almalinux_nomad_client" {
   family  = "almalinux-nomad-client"
-  project = var.project_id
+  project = local.project_id
 }
 
 data "google_compute_zones" "default" {
@@ -15,4 +15,7 @@ data "google_compute_zones" "default" {
 
 data "google_dns_managed_zone" "default" {
   name = var.dns_managed_zone
+}
+
+data "google_client_config" "current" {
 }

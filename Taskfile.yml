@@ -1,54 +1,149 @@
 # https://taskfile.dev
 version: '3'
 
+vars:
+  SCENARIO: '{{.SCENARIO | default "nomad-consul"}}'
+  GCP_PROJECT:
+    sh: gcloud config get-value project
+  TF_DIR: 'tf/scenarios/{{.SCENARIO}}'
+  PROJECT_ROOT:
+    sh: pwd
+ 
+env:
+  GOOGLE_PROJECT: '{{.GCP_PROJECT}}'
+ 
 tasks:
-
   all:
-    desc: Run all tasks
+    desc: Build images and deploy infrastructure for scenario, the default is nomad-consul
     cmds:
       - task: packer
       - task: apply
 
-  packer:
-    desc: Build Packer images
-    cmds:
-      - task: consul-config
-      - task: packer-init
-      - task: packer-build
-      - echo "All packer builds are complete."
-
-  apply:
-    desc: Deploy infrastructure
-    cmds:
-      - task: terraform-init
-      - task: terraform-apply
-
   redeploy:
-    desc: Redploy infrastructure
+    desc: Destroy, clean, and redeploy infrastructure
     cmds:
       - task: destroy
       - task: clean
       - task: all
 
-  destroy:
-    desc: Destroy infrastructure
+  # =============================================================================
+  # Scenario shortcuts - convenient named tasks
+  # =============================================================================
+  
+  nomad-consul:
+    desc: Deploy full Nomad + Consul + Observability stack
     cmds:
-      - task: terraform-destroy
+      - task: apply
+        vars: { SCENARIO: "nomad-consul" }
 
-  clean:
+  gke-dataplane:
+    desc: Deploy GKE with Consul as external control plane
     cmds:
-      - |
-        echo GCP Project ID: {{ .GCP_PROJECT }}
-        for image in $(gcloud compute images list --project {{ .GCP_PROJECT }} --no-standard-images --format="value(NAME)"); do gcloud compute images delete --project {{ .GCP_PROJECT }} -q $image;done
-    ignore_error: true
+      - task: apply
+        vars: { SCENARIO: "gke-consul-dataplane" }
+
+  consul-only:
+    desc: Deploy Consul control plane only
+    cmds:
+      - task: apply
+        vars: { SCENARIO: "consul-only" }
+
+  # =============================================================================
+  # Terraform tasks - scenario aware
+  # =============================================================================
+  
+  move-tfvars:
+    desc: Move tfvars to scenario directory
+    cmds:
+      - mv -f tf/terraform.tfvars {{.TF_DIR}}/terraform.tfvars
+    status:
+      - test -f {{.TF_DIR}}/terraform.tfvars
+  
+  apply:
+    desc: "Deploy infrastructure (SCENARIO={{.SCENARIO}})"
+    cmds:
+      - task: move-tfvars
+      - task: tf:init
+      - task: tf:apply
     vars:
-      GCP_PROJECT:
-        sh: gcloud config get-value project
+      SCENARIO: '{{.SCENARIO}}'
+
+  destroy:
+    desc: "Destroy infrastructure (SCENARIO={{.SCENARIO}})"
+    cmds:
+      - task: tf:destroy
+    vars:
+      SCENARIO: '{{.SCENARIO}}'
+
+  plan:
+    desc: "Plan infrastructure changes (SCENARIO={{.SCENARIO}})"
+    cmds:
+      - task: tf:init
+      - task: tf:plan
+    vars:
+      SCENARIO: '{{.SCENARIO}}'
+
+  output:
+    desc: "Show Terraform outputs (SCENARIO={{.SCENARIO}})"
+    cmds:
+      - task: tf:output
+    vars:
+      SCENARIO: '{{.SCENARIO}}'
+
+  # Namespaced Terraform tasks
+  tf:init:
+    desc: Initialize Terraform
+    dir: '{{.TF_DIR}}'
+    cmds:
+      - terraform init
+    status:
+      - test -d .terraform
+
+  tf:plan:
+    aliases: ["tfp"]
+    desc: Plan Terraform changes
+    dir: '{{.TF_DIR}}'
+    cmds:
+      - terraform plan
+
+  tf:apply:
+    aliases: ["tfa"]
+    desc: Apply Terraform changes
+    dir: '{{.TF_DIR}}'
+    cmds:
+      - terraform apply -parallelism=20 -auto-approve
+
+  tf:destroy:
+    aliases: ["tfd"]
+    desc: Destroy Terraform resources
+    dir: '{{.TF_DIR}}'
+    cmds:
+      - terraform destroy -parallelism=20 -auto-approve
+
+  tf:output:
+    aliases: ["tfo"]
+    desc: Show Terraform outputs
+    dir: '{{.TF_DIR}}'
+    cmds:
+      - terraform output
+
+  # =============================================================================
+  # Packer tasks
+  # =============================================================================
+  
+  packer:
+    desc: Build all Packer images
+    cmds:
+      - task: consul-config
+      - task: packer-init
+      - task: packer-build
+      - echo "All packer builds complete."
 
   consul-config:
-      dir: packer/configs
-      cmds: 
-        - terraform apply -auto-approve
+    dir: packer/configs
+    cmds:
+      - terraform init
+      - terraform apply -auto-approve
 
   packer-init:
     deps: [consul-config]
@@ -69,33 +164,43 @@ tasks:
   packer-consul-server:
     cmd: packer build -var-file=packer/variables.pkrvars.hcl packer/gcp-almalinux-consul-server.pkr.hcl
 
-  terraform-tfvars:
-    aliases: ["tfv"]
-    dir: .
-    cmd: sed '/image_family.*/d' variables.pkrvars.hcl | grep project | sed 's/^gcp_//' > tf/terraform.tfvars
+  # =============================================================================
+  # Utility tasks
+  # =============================================================================
+  
+  clean:
+    desc: Clean up GCP images
+    cmds:
+      - |
+        echo "GCP Project ID: {{.GCP_PROJECT}}"
+        for image in $(gcloud compute images list --project {{.GCP_PROJECT}} --no-standard-images --format="value(NAME)"); do
+          gcloud compute images delete --project {{.GCP_PROJECT}} -q $image
+        done
+    ignore_error: true
 
-  terraform-init:
-    dir: tf
-    cmd: terraform init
+  list-scenarios:
+    desc: List available deployment scenarios
+    cmds:
+      - |
+        echo "Available scenarios:"
+        echo "  - nomad-consul        : Full Nomad + Consul + Observability stack"
+        echo "  - gke-consul-dataplane: GKE with external Consul control plane"
+        echo "  - consul-only         : Consul control plane only"
+        echo ""
+        echo "Usage:"
+        echo "  task apply SCENARIO=gke-consul-dataplane"
+        echo "  task gke-dataplane"
+        echo "  task destroy SCENARIO=consul-only"
 
-  terraform-plan:
-    aliases: ["plan", "tfp"]
-    dir: tf
-    deps: [terraform-init]
-    cmd: terraform plan
-
-  terraform-apply:
-    aliases: ["tfa"]
-    deps: [terraform-init]
-    dir: tf
-    cmd: terraform apply -parallelism=20 -auto-approve
-
-  terraform-destroy:
-    aliases: ["tfd"]
-    dir: tf
-    cmd: terraform destroy -parallelism=20 -auto-approve
-
-  terraform-output:
-    aliases: ["tfo"]
-    dir: tf
-    cmd: terraform output
+  status:
+    desc: Show current scenario and state
+    cmds:
+      - |
+        echo "Current scenario: {{.SCENARIO}}"
+        echo "Terraform dir: {{.TF_DIR}}"
+        echo "GCP Project: {{.GCP_PROJECT}}"
+        if [ -d "{{.TF_DIR}}/.terraform" ]; then
+          echo "State: Initialized"
+        else
+          echo "State: Not initialized"
+        fi

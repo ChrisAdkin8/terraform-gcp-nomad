@@ -25,7 +25,7 @@ resource "google_compute_instance_template" "nomad_client" {
 
   network_interface {
     subnetwork         = var.subnet_self_link
-    subnetwork_project = var.project_id
+    subnetwork_project = local.project_id
   }
 
   service_account {

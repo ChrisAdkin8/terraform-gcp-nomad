@@ -1,5 +1,5 @@
 resource "google_storage_bucket" "loki" {
-  name          = "${var.loki_bucket_name}-${local.project_id}"
+  name          = "${var.loki_bucket_name}-${var.project_id}"
   location      = var.region
   force_destroy = true
   

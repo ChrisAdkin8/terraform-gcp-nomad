@@ -1,15 +1,15 @@
-data "google_project" "default" {}
-
 data "google_client_config" "current" {}
 
 data "google_compute_zones" "default" {
-  region = var.region
-  status = "UP"
+  region  = var.region
+  project = var.project_id 
+  status  = "UP"
 }
 
 data "google_compute_zones" "secondary" {
-  region = var.secondary_region
-  status = "UP"
+  region  = var.secondary_region
+  project = var.project_id 
+  status  = "UP"
 }
 
 data "http" "mgmt_ip" {

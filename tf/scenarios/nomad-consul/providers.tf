@@ -1,12 +1,7 @@
-variable "initial_management_token" {
-  description = "Pre-seeded consul ACL bootstrap token"
-  type        = string
-  sensitive   = true
-}
-
 provider "google" {
-  project = var.project_id
-  region  = var.region
+  region     = var.region
+  project    = var.project_id 
+
   batching {
     enable_batching = true
     send_after      = "10s"
@@ -33,6 +28,6 @@ provider "consul" {
 }
 
 provider "grafana" {
-  url  = "http://grafana.traefik-dc1.${local.project_id}.${local.base_domain}:8080"
+  url  = "http://grafana.traefik-dc1.${var.project_id}.${local.base_domain}:8080"
   auth = "admin:admin" 
 }
