@@ -38,3 +38,10 @@ terraform.rc
 
 # Ignore HashiCorp license files 
 *.hclic
+
+.consol-token
+*.zip
+consul-client.hcl
+consul-server.hcl
+nomad-client.hcl
+nomad-server.hcl
