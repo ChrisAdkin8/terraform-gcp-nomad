@@ -18,9 +18,9 @@ resource "google_compute_subnetwork" "default" {
   stack_type               = "IPV4_ONLY"
 
   log_config {
-    aggregation_interval = "INTERVAL_5_SEC"
-    flow_sampling        = 1.0
-    metadata             = "INCLUDE_ALL_METADATA"
+    aggregation_interval = local.subnet_log_config.aggregation_interval
+    flow_sampling        = local.subnet_log_config.flow_sampling
+    metadata             = local.subnet_log_config.metadata
   }
 }
 
@@ -38,8 +38,8 @@ resource "google_compute_router_nat" "default" {
   source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
 
   log_config {
-    enable = true
-    filter = "ERRORS_ONLY"
+    enable = local.nat_log_config.enable
+    filter = local.nat_log_config.filter
   }
 }
 
@@ -53,9 +53,9 @@ resource "google_compute_subnetwork" "secondary" {
   stack_type               = "IPV4_ONLY"
 
   log_config {
-    aggregation_interval = "INTERVAL_5_SEC"
-    flow_sampling        = 1.0
-    metadata             = "INCLUDE_ALL_METADATA"
+    aggregation_interval = local.subnet_log_config.aggregation_interval
+    flow_sampling        = local.subnet_log_config.flow_sampling
+    metadata             = local.subnet_log_config.metadata
   }
 }
 
@@ -73,8 +73,8 @@ resource "google_compute_router_nat" "secondary" {
   source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
 
   log_config {
-    enable = true
-    filter = "ALL"
+    enable = local.nat_log_config.enable
+    filter = local.nat_log_config.filter
   }
 }
 resource "google_compute_subnetwork" "proxy_only" {

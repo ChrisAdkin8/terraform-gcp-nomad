@@ -45,10 +45,6 @@ job "loki" {
         ports = ["http", "grpc"]
         args  = ["-config.file=/local/loki-config.yaml"]
       }
-
-      env {
-        GOOGLE_APPLICATION_CREDENTIALS = "/secrets/gcs-key.json"
-      }
       
       volume_mount {
         volume      = "loki_data"

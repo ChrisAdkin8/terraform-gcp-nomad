@@ -26,8 +26,3 @@ provider "consul" {
   address    = "http://${module.secondary_consul.fqdn}:8500"
   token      = var.initial_management_token
 }
-
-provider "grafana" {
-  url  = "http://grafana.traefik-dc1.${var.project_id}.${local.base_domain}:8080"
-  auth = "admin:admin" 
-}

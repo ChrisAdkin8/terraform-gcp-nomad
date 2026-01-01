@@ -124,7 +124,7 @@ resource "google_compute_firewall" "nomad_client" {
 }
 
 resource "google_compute_firewall" "allow_observability_internal" {
-  name    = "allow-observability-internal"
+  name    = "${var.name_prefix}-allow-observability-internal"
   network = google_compute_network.default.name
 
   allow {

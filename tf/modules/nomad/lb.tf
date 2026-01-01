@@ -172,12 +172,7 @@ resource "google_compute_firewall" "health_checks" {
     ports    = ["8080", "8081"]
   }
 
-  source_ranges = [
-    "35.191.0.0/16",
-    "130.211.0.0/22",
-    "209.85.152.0/22",
-    "209.85.204.0/22"
-  ]
+  source_ranges = data.google_netblock_ip_ranges.health_checkers.cidr_blocks
 
   target_tags = ["nomad-client"]
 }

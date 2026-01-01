@@ -39,7 +39,9 @@ resource "google_compute_instance_template" "nomad_client" {
     ]
   }
 
-  depends_on = [google_compute_instance.nomad_servers]
+  depends_on = [
+    google_compute_instance.nomad_servers
+  ]
 }
 
 resource "google_compute_region_instance_group_manager" "nomad_client" {

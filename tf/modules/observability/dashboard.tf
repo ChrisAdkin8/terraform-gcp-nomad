@@ -1,26 +1,33 @@
-resource "null_resource" "wait_for_grafana" {
+resource "null_resource" "grafana_dashboard" {
   provisioner "local-exec" {
     command = <<-EOF
+      echo "---------------------------------------------------"
+      echo "Grafana URL: $GRAFANA_URL"
+      echo "---------------------------------------------------"
       for i in $(seq 1 30); do
-        if curl -sf -u admin:admin ${local.grafana_url}/api/health > /dev/null 2>&1; then
+        if curl -sf -u "$GRAFANA_AUTH" $GRAFANA_URL/api/health > /dev/null 2>&1; then
           echo "Grafana is ready"
-          exit 0
+          break
         fi
         echo "Waiting for Grafana... attempt $i/30"
         sleep 10
       done
-      echo "Grafana failed to become ready"
-      exit 1
+
+      curl -X POST \
+        -H "Content-Type: application/json" \
+        -u "$GRAFANA_AUTH" \
+        -d "{\"dashboard\": $(cat ${path.module}/nomad-logs-dashboard.json), \"overwrite\": true}" \
+        "$GRAFANA_URL/api/dashboards/db"
     EOF
+
+    environment = {
+      GRAFANA_URL  = "http://grafana.traefik-${var.data_center}.${var.project_id}.${var.base_domain}:8080"
+      GRAFANA_AUTH = "admin:${random_password.grafana_admin.result}"
+    }
   }
-  
-  depends_on = [ nomad_job.grafana ]
-}
 
-resource "grafana_dashboard" "from_json" {
-  config_json = file("${path.module}/dashboards/nomad-logs-dashboard.json")
-  folder      = local.folder_id
-  overwrite   = true
-
-  depends_on = [ null_resource.wait_for_grafana ]
+  depends_on = [
+    random_password.grafana_admin,
+    nomad_job.grafana
+  ]
 }

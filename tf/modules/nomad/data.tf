@@ -19,3 +19,7 @@ data "google_dns_managed_zone" "default" {
 
 data "google_client_config" "current" {
 }
+
+data "google_netblock_ip_ranges" "health_checkers" {
+  range_type = "health-checkers"
+}

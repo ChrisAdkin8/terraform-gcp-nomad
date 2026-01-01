@@ -7,11 +7,11 @@ resource "nomad_variable" "traefik_consul_token" {
 }
 
 resource "nomad_job" "traefik" {
-  jobspec = templatefile("${path.module}/templates/traefik.nomad.tpl",  {
-    dummy = "dummy"
-  })
+  jobspec = file("${path.module}/templates/traefik.nomad.tpl")
 
-  depends_on = [ nomad_variable.traefik_consul_token ]
+  depends_on = [
+    nomad_variable.traefik_consul_token
+  ]
 }
 
 resource "nomad_job" "loki" {
@@ -19,14 +19,17 @@ resource "nomad_job" "loki" {
     host_url_suffix = "traefik-${var.data_center}.${var.project_id}.${var.base_domain}"
   })
 
-  depends_on = [ nomad_job.traefik
-                ,nomad_variable.loki_gcs
-                ,google_storage_bucket.loki
-                ,nomad_variable.loki_gcs_key ]
+  depends_on = [ 
+    nomad_job.traefik,
+    nomad_variable.loki_gcs,
+    google_storage_bucket.loki
+  ]
 }
 
 resource "terraform_data" "loki_ready" {
-  depends_on = [nomad_job.loki]
+  depends_on = [
+    nomad_job.loki
+  ]
 }
 
 data "http" "loki_health" {
@@ -46,8 +49,10 @@ resource "nomad_job" "gateway" {
     host_url_suffix = "traefik-${var.data_center}.${var.project_id}.${var.base_domain}"
   })
 
-  depends_on = [ nomad_job.traefik
-                ,data.http.loki_health ]
+  depends_on = [
+    nomad_job.traefik,
+    data.http.loki_health 
+  ]
 }
 
 resource "nomad_job" "collector" {
@@ -55,8 +60,18 @@ resource "nomad_job" "collector" {
     host_url_suffix = "traefik-${var.data_center}.${var.project_id}.${var.base_domain}"
   })
 
-  depends_on = [  nomad_job.traefik
-                 ,nomad_job.gateway ]
+  depends_on = [
+    nomad_job.traefik,
+    nomad_job.gateway
+  ]
+}
+
+resource "nomad_variable" "grafana_admin_password" {
+  path = "nomad/jobs/grafana"
+
+  items = {
+    admin_password = random_password.grafana_admin.result
+  }
 }
 
 resource "nomad_job" "grafana" {
@@ -64,6 +79,9 @@ resource "nomad_job" "grafana" {
     host_url_suffix = "traefik-${var.data_center}.${var.project_id}.${var.base_domain}"
   })
 
-  depends_on = [  nomad_job.traefik
-                 ,nomad_job.collector ]
+  depends_on = [
+    nomad_job.traefik,
+    nomad_job.collector,
+    nomad_variable.grafana_admin_password
+  ]
 }

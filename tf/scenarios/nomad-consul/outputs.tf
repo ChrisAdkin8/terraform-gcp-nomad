@@ -31,11 +31,12 @@ output "cluster_summary" {
   ])
 }
 
-output "consul_acl_bootstrap_token" {
-  value     = var.initial_management_token
+output "grafana_admin_password" {
+  value     = module.observability.grafana_admin_password
   sensitive = true
 }
 
-output "dns_managed_zone" {
-  value = data.google_compute_zones.default.names[0]
+output "consul_acl_bootstrap_token" {
+  value     = var.initial_management_token
+  sensitive = true
 }

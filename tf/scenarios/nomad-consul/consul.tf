@@ -30,8 +30,10 @@ data "http" "consul_status" {
     min_delay_ms = 1024 
   }
 
-  depends_on = [ module.consul ,
-                 module.secondary_consul]
+  depends_on = [ 
+    module.consul,
+    module.secondary_consul
+  ]
 }
 
 resource "consul_acl_policy" "nomad_agent" {
@@ -87,8 +89,10 @@ data "http" "secondary_consul_status" {
     min_delay_ms = 1024 
   }
 
-  depends_on = [ module.consul ,
-                 module.secondary_consul]
+  depends_on = [
+    module.consul,
+    module.secondary_consul
+  ]
 }
 
 resource "consul_acl_policy" "secondary_nomad_agent" {
@@ -109,5 +113,7 @@ service_prefix "" {
 
 EOF
 
-  depends_on = [ data.http.secondary_consul_status ]
+  depends_on = [
+    data.http.secondary_consul_status
+  ]
 }

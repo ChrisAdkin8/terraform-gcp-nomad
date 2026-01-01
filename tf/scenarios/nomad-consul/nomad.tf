@@ -17,7 +17,8 @@ module "secondary_nomad" {
 
   depends_on = [
     consul_acl_policy.secondary_nomad_agent,
-    module.network ]
+    module.network
+  ]
 }
 
 module "nomad" {
@@ -39,25 +40,7 @@ module "nomad" {
 
   depends_on = [
     consul_acl_policy.nomad_agent,
-    module.network ]
-}
-
-module "observability" {
-  source                = "../../modules/observability"
-
-  project_id            = var.project_id
-  nomad_addr            = "http://${module.nomad.fqdn}:4646"
-  consul_token          = var.initial_management_token
-  data_center           = "dc1" 
-  base_domain           = local.base_domain
-  region                = var.region 
-  loki_bucket_name      = "loki_bucket"
-  bigquery_dataset_name = "loki_logs"
-  log_retention_days    = 90
-
-  depends_on = [
-     module.nomad
-    ,null_resource.nomad_consul_setup
+    module.network
   ]
 }
 
