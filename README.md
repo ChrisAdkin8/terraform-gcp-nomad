@@ -253,7 +253,7 @@ cp ~/path/to/nomad.hclic .
 cp ~/path/to/consul.hclic .
 ```
 
-### 4. Create and populate terraform.tfvars file - unless default variable values are to be used 
+### 4. Create terraform.tfvars file for none default variable values 
 
 Create `tf/terraform.tfvars`:
 
