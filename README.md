@@ -253,15 +253,11 @@ cp ~/path/to/nomad.hclic .
 cp ~/path/to/consul.hclic .
 ```
 
-### 4. Create Configuration
+### 4. Create and populate terraform.tfvars file - unless default variable values are to be used 
 
 Create `tf/terraform.tfvars`:
 
 ```hcl
-# Required
-project_id               = "your-gcp-project-id"
-initial_management_token = "your-consul-acl-token"  # Generate with: uuidgen
-
 # Optional - Override defaults
 region                   = "europe-west1"
 secondary_region         = "europe-west2"
