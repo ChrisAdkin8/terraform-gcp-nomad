@@ -1,5 +1,5 @@
 resource "google_storage_bucket" "default" {
-  name                        = "${random_pet.default.id}-${var.project_id}"
+  name                        = "${random_pet.default.id}-${local.project_id}"
   location                    = "EU"
   force_destroy               = true
   uniform_bucket_level_access = true

@@ -8,14 +8,21 @@ vars:
   TF_DIR: 'tf/scenarios/{{.SCENARIO}}'
   PROJECT_ROOT:
     sh: pwd
- 
+  TOKEN_FILE: '.bootstrap-token'
+
 env:
   GOOGLE_PROJECT: '{{.GCP_PROJECT}}'
+  TF_VAR_project_id: '{{.GCP_PROJECT}}'
  
 tasks:
+  # =============================================================================
+  # Main workflows
+  # =============================================================================
+
   all:
-    desc: Build images and deploy infrastructure for scenario, the default is nomad-consul
+    desc: Build images and deploy infrastructure
     cmds:
+      - task: token:ensure
       - task: packer
       - task: apply
 
@@ -27,7 +34,63 @@ tasks:
       - task: all
 
   # =============================================================================
-  # Scenario shortcuts - convenient named tasks
+  # Token Management
+  # =============================================================================
+
+  token:ensure:
+    desc: Ensure bootstrap token exists (create if missing)
+    cmds:
+      - |
+        if [ ! -f "{{.TOKEN_FILE}}" ]; then
+          echo "Creating new bootstrap token..."
+          uuidgen | tr '[:upper:]' '[:lower:]' > {{.TOKEN_FILE}}
+          chmod 600 {{.TOKEN_FILE}}
+          echo "✓ Token created in {{.TOKEN_FILE}}"
+        else
+          echo "✓ Token exists in {{.TOKEN_FILE}}"
+        fi
+    status:
+      - test -f {{.TOKEN_FILE}}
+
+  token:show:
+    desc: Display the current bootstrap token
+    cmds:
+      - |
+        if [ -f "{{.TOKEN_FILE}}" ]; then
+          echo "Bootstrap token: $(cat {{.TOKEN_FILE}})"
+        else
+          echo "No token file found. Run 'task token:ensure' first."
+          exit 1
+        fi
+
+  token:rotate:
+    desc: Generate a new bootstrap token (requires rebuild)
+    cmds:
+      - |
+        echo "⚠ WARNING: Rotating token requires rebuilding images and redeploying!"
+        read -p "Continue? (y/N) " confirm
+        if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
+          uuidgen | tr '[:upper:]' '[:lower:]' > {{.TOKEN_FILE}}
+          chmod 600 {{.TOKEN_FILE}}
+          echo "✓ New token: $(cat {{.TOKEN_FILE}})"
+          echo "Now run: task redeploy"
+        else
+          echo "Cancelled."
+        fi
+
+  token:export:
+    desc: Export token as environment variable (for manual use)
+    cmds:
+      - |
+        if [ -f "{{.TOKEN_FILE}}" ]; then
+          echo "Run this command:"
+          echo "  export TF_VAR_initial_management_token=$(cat {{.TOKEN_FILE}})"
+        else
+          echo "No token file. Run 'task token:ensure' first."
+        fi
+
+  # =============================================================================
+  # Scenario shortcuts
   # =============================================================================
   
   nomad-consul:
@@ -49,20 +112,13 @@ tasks:
         vars: { SCENARIO: "consul-only" }
 
   # =============================================================================
-  # Terraform tasks - scenario aware
+  # Terraform tasks
   # =============================================================================
-  
-  move-tfvars:
-    desc: Move tfvars to scenario directory
-    cmds:
-      - mv -f tf/terraform.tfvars {{.TF_DIR}}/terraform.tfvars
-    status:
-      - test -f {{.TF_DIR}}/terraform.tfvars
-  
+
   apply:
     desc: "Deploy infrastructure (SCENARIO={{.SCENARIO}})"
     cmds:
-      - task: move-tfvars
+      - task: token:ensure
       - task: tf:init
       - task: tf:apply
     vars:
@@ -70,6 +126,9 @@ tasks:
 
   destroy:
     desc: "Destroy infrastructure (SCENARIO={{.SCENARIO}})"
+    env:
+      TF_VAR_initial_management_token:
+        sh: cat {{.TOKEN_FILE}} 2>/dev/null || echo "dummy-token-for-destroy"
     cmds:
       - task: tf:destroy
     vars:
@@ -78,6 +137,7 @@ tasks:
   plan:
     desc: "Plan infrastructure changes (SCENARIO={{.SCENARIO}})"
     cmds:
+      - task: token:ensure
       - task: tf:init
       - task: tf:plan
     vars:
@@ -85,12 +145,15 @@ tasks:
 
   output:
     desc: "Show Terraform outputs (SCENARIO={{.SCENARIO}})"
+    env:
+      TF_VAR_initial_management_token:
+        sh: cat {{.TOKEN_FILE}} 2>/dev/null || echo "dummy"
     cmds:
       - task: tf:output
     vars:
       SCENARIO: '{{.SCENARIO}}'
 
-  # Namespaced Terraform tasks
+  # Namespaced Terraform tasks (with token injection)
   tf:init:
     desc: Initialize Terraform
     dir: '{{.TF_DIR}}'
@@ -100,30 +163,38 @@ tasks:
       - test -d .terraform
 
   tf:plan:
-    aliases: ["tfp"]
     desc: Plan Terraform changes
     dir: '{{.TF_DIR}}'
+    env:
+      TF_VAR_initial_management_token:
+        sh: cat {{.PROJECT_ROOT}}/{{.TOKEN_FILE}}
     cmds:
       - terraform plan
 
   tf:apply:
-    aliases: ["tfa"]
     desc: Apply Terraform changes
     dir: '{{.TF_DIR}}'
+    env:
+      TF_VAR_initial_management_token:
+        sh: cat {{.PROJECT_ROOT}}/{{.TOKEN_FILE}}
     cmds:
-      - terraform apply -parallelism=20 -auto-approve
+      - terraform apply -parallelism=20 -auto-approve    
 
   tf:destroy:
-    aliases: ["tfd"]
     desc: Destroy Terraform resources
     dir: '{{.TF_DIR}}'
+    env:
+      TF_VAR_initial_management_token:
+        sh: cat {{.PROJECT_ROOT}}/{{.TOKEN_FILE}} 2>/dev/null || echo "dummy-token-for-destroy"
     cmds:
       - terraform destroy -parallelism=20 -auto-approve
 
   tf:output:
-    aliases: ["tfo"]
     desc: Show Terraform outputs
     dir: '{{.TF_DIR}}'
+    env:
+      TF_VAR_initial_management_token:
+        sh: cat {{.PROJECT_ROOT}}/{{.TOKEN_FILE}} 2>/dev/null || echo "dummy"
     cmds:
       - terraform output
 
@@ -134,34 +205,47 @@ tasks:
   packer:
     desc: Build all Packer images
     cmds:
-      - task: consul-config
-      - task: packer-init
-      - task: packer-build
-      - echo "All packer builds complete."
+      - task: token:ensure
+      - task: packer:config
+      - task: packer:init
+      - task: packer:build
+      - echo "✓ All packer builds complete."
 
-  consul-config:
-    dir: packer/configs
+  packer:config:
+    desc: Generate Packer config files from templates
     cmds:
-      - terraform init
-      - terraform apply -auto-approve
+      - |
+        TOKEN=$(cat {{.TOKEN_FILE}})
+        
+        # Generate config files from templates
+        sed "s/__BOOTSTRAP_TOKEN__/$TOKEN/g" packer/configs/consul-server.hcl.tmpl > packer/configs/consul-server.hcl
+        sed "s/__BOOTSTRAP_TOKEN__/$TOKEN/g" packer/configs/consul-client.hcl.tmpl > packer/configs/consul-client.hcl
+        sed "s/__BOOTSTRAP_TOKEN__/$TOKEN/g" packer/configs/nomad-server.hcl.tmpl > packer/configs/nomad-server.hcl
+        sed "s/__BOOTSTRAP_TOKEN__/$TOKEN/g" packer/configs/nomad-client.hcl.tmpl > packer/configs/nomad-client.hcl
+        
+        # Generate packer variables
+        cat > packer/variables.pkrvars.hcl << EOF
+        gcp_project_id = "{{.GCP_PROJECT}}"
+        EOF
+        
+        echo "✓ Config files generated with token from {{.TOKEN_FILE}}"
 
-  packer-init:
-    deps: [consul-config]
+  packer:init:
     cmds:
       - packer init packer/gcp-almalinux-nomad-server.pkr.hcl
       - packer init packer/gcp-almalinux-nomad-client.pkr.hcl
       - packer init packer/gcp-almalinux-consul-server.pkr.hcl
 
-  packer-build:
-    deps: [packer-nomad-server, packer-nomad-client, packer-consul-server]
+  packer:build:
+    deps: [packer:nomad-server, packer:nomad-client, packer:consul-server]
 
-  packer-nomad-server:
+  packer:nomad-server:
     cmd: packer build -var-file=packer/variables.pkrvars.hcl packer/gcp-almalinux-nomad-server.pkr.hcl
 
-  packer-nomad-client:
+  packer:nomad-client:
     cmd: packer build -var-file=packer/variables.pkrvars.hcl packer/gcp-almalinux-nomad-client.pkr.hcl
 
-  packer-consul-server:
+  packer:consul-server:
     cmd: packer build -var-file=packer/variables.pkrvars.hcl packer/gcp-almalinux-consul-server.pkr.hcl
 
   # =============================================================================
@@ -177,6 +261,23 @@ tasks:
           gcloud compute images delete --project {{.GCP_PROJECT}} -q $image
         done
     ignore_error: true
+
+  clean:configs:
+    desc: Remove generated config files (keeps templates and token)
+    cmds:
+      - rm -f packer/configs/consul-server.hcl
+      - rm -f packer/configs/consul-client.hcl
+      - rm -f packer/configs/nomad-server.hcl
+      - rm -f packer/configs/nomad-client.hcl
+      - rm -f packer/variables.pkrvars.hcl
+      - echo "✓ Generated config files removed"
+
+  clean:all:
+    desc: Remove everything including token (nuclear option)
+    cmds:
+      - task: clean:configs
+      - rm -f {{.TOKEN_FILE}}
+      - echo "✓ Token file removed"
 
   list-scenarios:
     desc: List available deployment scenarios
@@ -196,11 +297,48 @@ tasks:
     desc: Show current scenario and state
     cmds:
       - |
-        echo "Current scenario: {{.SCENARIO}}"
+        echo "=== Environment ==="
+        echo "Scenario:      {{.SCENARIO}}"
         echo "Terraform dir: {{.TF_DIR}}"
-        echo "GCP Project: {{.GCP_PROJECT}}"
-        if [ -d "{{.TF_DIR}}/.terraform" ]; then
-          echo "State: Initialized"
+        echo "GCP Project:   {{.GCP_PROJECT}}"
+        echo ""
+        echo "=== Token ==="
+        if [ -f "{{.TOKEN_FILE}}" ]; then
+          echo "Token file:    {{.TOKEN_FILE}} ✓"
+          echo "Token value:   $(cat {{.TOKEN_FILE}})"
         else
-          echo "State: Not initialized"
+          echo "Token file:    Not found (run 'task token:ensure')"
         fi
+        echo ""
+        echo "=== Terraform State ==="
+        if [ -d "{{.TF_DIR}}/.terraform" ]; then
+          echo "Status: Initialized ✓"
+        else
+          echo "Status: Not initialized"
+        fi
+
+  help:
+    desc: Show help and common workflows
+    cmds:
+      - |
+        echo "=== Common Workflows ==="
+        echo ""
+        echo "First-time setup:"
+        echo "  task all               # Creates token, builds images, deploys"
+        echo ""
+        echo "Daily operations:"
+        echo "  task apply             # Deploy/update infrastructure"
+        echo "  task destroy           # Tear down infrastructure"
+        echo "  task plan              # Preview changes"
+        echo ""
+        echo "Token management:"
+        echo "  task token:show        # Display current token"
+        echo "  task token:rotate      # Generate new token"
+        echo "  task token:export      # Show export command for shell"
+        echo ""
+        echo "Rebuild:"
+        echo "  task redeploy          # Full destroy + rebuild"
+        echo "  task packer            # Rebuild images only"
+        echo ""
+        echo "Status:"
+        echo "  task status            # Show environment status"

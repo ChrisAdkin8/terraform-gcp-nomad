@@ -89,3 +89,14 @@ variable "nomad_client_disk_size" {
   type        = number
   default     = 20
 }
+
+variable "allowed_ingress_cidrs" {
+  description = "List of CIDR blocks allowed to access Traefik endpoints. Use your office/VPN IPs."
+  type        = list(string)
+  default     = []
+  
+  validation {
+    condition     = length(var.allowed_ingress_cidrs) > 0
+    error_message = "You must specify at least one allowed CIDR block for ingress access."
+  }
+}

@@ -2,7 +2,7 @@ resource "nomad_variable" "traefik_consul_token" {
   path = "nomad/jobs/traefik"
   
   items = {
-    consul_token = var.consul_token 
+    consul_token = var.consul_token
   }
 }
 
@@ -32,16 +32,24 @@ resource "terraform_data" "loki_ready" {
   ]
 }
 
-data "http" "loki_health" {
-  url = "http://loki.traefik-${var.data_center}.${var.project_id}.${var.base_domain}:8080/ready"
+resource "null_resource" "wait_for_loki" {
+  depends_on = [nomad_job.loki]
 
-  retry {
-    attempts     = 30
-    min_delay_ms = 5000
-    max_delay_ms = 10000
+  provisioner "local-exec" {
+    command = <<-EOT
+      echo "Waiting for Loki to be healthy..."
+      for i in $(seq 1 60); do
+        if curl -sf "http://loki.traefik-${var.data_center}.${var.project_id}.${var.base_domain}:8080/ready" > /dev/null 2>&1; then
+          echo "Loki is ready!"
+          exit 0
+        fi
+        echo "Attempt $i/60 - Loki not ready, waiting 10s..."
+        sleep 10
+      done
+      echo "Loki failed to become healthy"
+      exit 1
+    EOT
   }
-
-  depends_on = [terraform_data.loki_ready]
 }
 
 resource "nomad_job" "gateway" {
@@ -50,8 +58,8 @@ resource "nomad_job" "gateway" {
   })
 
   depends_on = [
-    nomad_job.traefik,
-    data.http.loki_health 
+    null_resource.wait_for_loki,
+    nomad_job.traefik
   ]
 }
 

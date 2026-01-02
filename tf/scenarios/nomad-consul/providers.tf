@@ -1,6 +1,6 @@
 provider "google" {
   region     = var.region
-  project    = var.project_id 
+  project    = local.project_id 
 
   batching {
     enable_batching = true
@@ -22,7 +22,7 @@ provider "consul" {
 }
 
 provider "consul" {
-  alias      = "secondary"
-  address    = "http://${module.secondary_consul.fqdn}:8500"
-  token      = var.initial_management_token
+  alias   = "secondary"
+  address = "http://${module.secondary_consul.fqdn}:8500"
+  token   = var.initial_management_token
 }

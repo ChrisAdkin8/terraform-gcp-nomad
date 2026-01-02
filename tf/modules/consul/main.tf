@@ -24,6 +24,7 @@ resource "google_compute_instance" "consul_servers" {
 
   network_interface {
     subnetwork = var.subnet_self_link
+
     access_config {
       // Required to give instances external IPs
     }

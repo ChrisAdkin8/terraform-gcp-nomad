@@ -4,7 +4,7 @@ output "names" {
 }
 
 output "external_server_ips" {
-  value       = [for instance in google_compute_instance.nomad_servers : instance.network_interface[0].access_config[0].nat_ip]
+  value       = [for instance in google_compute_instance.nomad_servers : instance.network_interface[0].network_ip]
   description = "External IP addresses of Nomad server instances"
 }
 

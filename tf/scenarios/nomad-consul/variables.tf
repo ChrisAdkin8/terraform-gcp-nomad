@@ -47,6 +47,7 @@ variable "secondary_consul_server_instances" {
 variable "initial_management_token" {
   description = "Seed token for bootstrapping Consul's ACL system"
   type        = string
+  default     = "12335dcc-3054-4fc3-845f-74a0488c94a7"
   sensitive   = true
 }
 
@@ -180,8 +181,8 @@ variable "grafana_admin_password" {
   description = "Grafana admin password"
 }
 
-variable "create_dashboard" {
-  description = "Whether to create Grafana dashboard (set to true after Grafana is running)"
-  type        = bool
-  default     = false
+variable "additional_allowed_cidrs" {
+  description = "Additional CIDR blocks to allow access (e.g., office IPs, VPN ranges)"
+  type        = list(string)
+  default     = []
 }

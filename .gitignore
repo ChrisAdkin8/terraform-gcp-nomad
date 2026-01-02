@@ -38,12 +38,8 @@ terraform.rc
 
 # Ignore HashiCorp license files 
 *.hclic
-
-.consul-token
 *.zip
-consul-client.hcl
-consul-server.hcl
-nomad-client.hcl
-nomad-server.hcl
-variables.pkrvars.hcl
-
+.bootstrap-token
+packer/configs/*.hcl
+!packer/configs/*.hcl.tmpl
+packer/variables.pkrvars.hcl

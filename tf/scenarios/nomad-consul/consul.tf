@@ -1,7 +1,7 @@
 module "consul" {
   source = "../../modules/consul"
 
-  project_id               = var.project_id
+  project_id               = local.project_id
   create_consul_cluster    = var.create_consul_cluster
   consul_server_instances  = var.consul_server_instances
   datacenter               = var.datacenter
@@ -60,7 +60,7 @@ EOF
 module "secondary_consul" {
   source = "../../modules/consul"
 
-  project_id               = var.project_id
+  project_id               = local.project_id
   create_consul_cluster    = var.create_secondary_consul_cluster
   consul_server_instances  = var.secondary_consul_server_instances
   datacenter               = var.secondary_datacenter

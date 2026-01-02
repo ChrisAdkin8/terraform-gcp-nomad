@@ -1,7 +1,7 @@
 module "observability" {
   source                 = "../../modules/observability"
 
-  project_id             = var.project_id
+  project_id             = local.project_id
   nomad_addr             = "http://${module.nomad.fqdn}:4646"
   consul_token           = var.initial_management_token
   data_center            = "dc1" 

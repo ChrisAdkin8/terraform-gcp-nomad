@@ -145,3 +145,21 @@ resource "google_compute_firewall" "allow_observability_internal" {
   
   description = "Allow internal observability traffic (Loki, Alloy gateway)"
 }
+
+resource "google_compute_firewall" "lb_health_checks" {
+  name    = "${var.name_prefix}-lb-health-checks"
+  network = google_compute_network.default.name
+
+  allow {
+    protocol = "tcp"
+    ports    = ["8080", "8081"]
+  }
+
+  source_ranges = data.google_netblock_ip_ranges.lb.cidr_blocks
+  
+  target_tags   = [
+    "nomad-client"
+  ]
+  
+  description = "Allow GCP load balancer health checks to Traefik"
+}

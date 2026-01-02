@@ -2,13 +2,13 @@ data "google_client_config" "current" {}
 
 data "google_compute_zones" "default" {
   region  = var.region
-  project = var.project_id 
+  project = local.project_id 
   status  = "UP"
 }
 
 data "google_compute_zones" "secondary" {
   region  = var.secondary_region
-  project = var.project_id 
+  project = local.project_id 
   status  = "UP"
 }
 

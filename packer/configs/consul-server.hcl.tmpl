@@ -41,7 +41,7 @@ acl {
   enable_token_persistence = true
 
   tokens {
-    initial_management = "${initial_management_token}"
-    agent              = "${initial_management_token}"
+    initial_management = "__BOOTSTRAP_TOKEN__"
+    agent              = "__BOOTSTRAP_TOKEN__"
   }
 }

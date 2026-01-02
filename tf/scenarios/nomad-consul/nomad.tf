@@ -1,7 +1,13 @@
+#
+# For ssh - tunnelling through IAP is required
+# 
+# gcloud compute ssh <instance-name> --zone=<zone> --tunnel-through-iap
+#
+
 module "secondary_nomad" {
   source = "../../modules/nomad"
 
-  project_id             = var.project_id
+  project_id             = local.project_id
   create_nomad_cluster   = var.create_secondary_nomad_cluster
   create_dns_record      = false   
   datacenter             = var.secondary_datacenter
@@ -12,6 +18,7 @@ module "secondary_nomad" {
   nomad_server_instances = var.secondary_nomad_server_instances
   region                 = var.secondary_region
   subnet_self_link       = module.network.secondary_subnet_self_link
+  allowed_ingress_cidrs  = concat([local.mgmt_cidr], var.additional_allowed_cidrs)
   zone                   = data.google_compute_zones.secondary.names[0]
   base_domain            = local.base_domain  
 
@@ -24,7 +31,7 @@ module "secondary_nomad" {
 module "nomad" {
   source = "../../modules/nomad"
 
-  project_id             = var.project_id
+  project_id             = local.project_id
   create_nomad_cluster   = var.create_nomad_cluster
   create_dns_record      = true 
   datacenter             = var.datacenter
@@ -35,6 +42,7 @@ module "nomad" {
   nomad_server_instances = var.nomad_server_instances
   region                 = var.region
   subnet_self_link       = module.network.subnet_self_link
+  allowed_ingress_cidrs  = concat([local.mgmt_cidr], var.additional_allowed_cidrs)
   zone                   = data.google_compute_zones.default.names[0]
   base_domain            = local.base_domain  
 
