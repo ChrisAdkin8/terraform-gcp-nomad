@@ -1,30 +1,40 @@
+# Data sources to extract network information from provided subnet
+data "google_compute_subnetwork" "provided" {
+  self_link = var.subnet_self_link
+}
+
+data "google_compute_network" "provided" {
+  name = data.google_compute_subnetwork.provided.network
+}
+
+# Portworx service account
 resource "google_service_account" "px" {
   account_id   = "px-service-account"
   display_name = "Portworx service account"
 }
 
 resource "google_project_iam_binding" "px_service_account_user" {
-    project = var.project_id
-    role    = "roles/iam.serviceAccountUser"
-    members = [
-        "serviceAccount:${google_service_account.px.email}",
-    ]
+  project = var.project_id
+  role    = "roles/iam.serviceAccountUser"
+  members = [
+    "serviceAccount:${google_service_account.px.email}",
+  ]
 }
 
 resource "google_project_iam_binding" "px_account_admin" {
-    project = var.project_id
-    role    = "roles/compute.admin"
-    members = [
-        "serviceAccount:${google_service_account.px.email}",
-    ]
+  project = var.project_id
+  role    = "roles/compute.admin"
+  members = [
+    "serviceAccount:${google_service_account.px.email}",
+  ]
 }
 
 resource "google_project_iam_binding" "px_kubernetes_engine_cluster_viewer" {
-    project = var.project_id
-    role    = "roles/container.clusterViewer"
-    members = [
-        "serviceAccount:${google_service_account.px.email}",
-    ]
+  project = var.project_id
+  role    = "roles/container.clusterViewer"
+  members = [
+    "serviceAccount:${google_service_account.px.email}",
+  ]
 }
 
 resource "google_container_cluster" "primary" {
@@ -36,9 +46,14 @@ resource "google_container_cluster" "primary" {
   node_version             = var.kubernetes_version
   initial_node_count       = 1
 
-  network         = google_compute_network.vpc.name
-  subnetwork      = google_compute_subnetwork.subnet.name
+  network         = data.google_compute_network.provided.name
+  subnetwork      = var.subnet_self_link
   resource_labels = var.labels
+
+  # Enable workload identity for Consul dataplane
+  workload_identity_config {
+    workload_pool = "${var.project_id}.svc.id.goog"
+  }
 }
 
 resource "google_container_node_pool" "primary_nodes" {

@@ -324,7 +324,7 @@ A **scenario** is a specific deployment configuration that combines Terraform mo
 
 **Available Scenarios:**
 - `nomad-consul` (default) - Full Nomad + Consul + Observability stack
-- `gke-consul-dataplane` - GKE cluster with Consul as external control plane (referenced, not yet implemented)
+- `gke-consul-dataplane` - GKE cluster with Consul service mesh connected to external Consul control plane
 - `consul-only` - Standalone Consul control plane (referenced, not yet implemented)
 
 **Scenario Selection:**
@@ -380,7 +380,7 @@ Convenience commands that automatically select the correct scenario:
 | Command | Scenario | Description |
 |---------|----------|-------------|
 | `task nomad-consul` | `nomad-consul` | Deploy full stack (Nomad + Consul + Observability) |
-| `task gke-dataplane` | `gke-consul-dataplane` | Deploy GKE with Consul control plane |
+| `task gke-dataplane` | `gke-consul-dataplane` | Deploy GKE cluster with Consul service mesh |
 | `task consul-only` | `consul-only` | Deploy Consul control plane only |
 
 #### Terraform Operations
@@ -826,6 +826,156 @@ Approximate monthly costs for default configuration (single datacenter):
 
 ---
 
+## GKE Consul Dataplane Scenario
+
+The `gke-consul-dataplane` scenario deploys a Google Kubernetes Engine (GKE) cluster with Consul service mesh capabilities, connected to an external Consul control plane.
+
+### What It Deploys
+
+This scenario creates a lightweight but complete Consul service mesh infrastructure:
+
+#### Consul Control Plane
+- **Consul Servers:** 1-3 instances (configurable)
+- **Machine Type:** e2-medium
+- **ACL:** Enabled with bootstrap token authentication
+- **Service Discovery:** Automatic peer discovery via GCP tags
+- **External Access:** Public IPs for management console
+
+#### GKE Cluster with Consul Dataplane
+- **Kubernetes Version:** 1.29 (configurable)
+- **Node Count:** 3 nodes (configurable)
+- **Machine Type:** e2-standard-4 (configurable)
+- **Workload Identity:** Enabled for enhanced security
+- **Consul Integration:**
+  - Service mesh with automatic sidecar injection
+  - mTLS communication between services
+  - Service registration in Consul catalog (prefixed with `k8s-`)
+  - DNS forwarding for `.consul` domains
+  - Ingress gateway with external LoadBalancer (ports 80, 443, 8080, 8443)
+
+#### Network Infrastructure
+- **VPC:** Shared network for both Consul servers and GKE
+- **Subnet:** 10.128.64.0/24 (configurable)
+- **Firewall Rules:**
+  - GKE nodes to Consul servers (ports 8500, 8502, 8301, 8600)
+  - External access to ingress gateway
+  - Management access from your IP
+
+### Quick Deployment
+
+```bash
+# Ensure bootstrap token exists
+task token:ensure
+
+# Deploy the scenario
+task gke-dataplane
+
+# Or with explicit scenario name
+task apply SCENARIO=gke-consul-dataplane
+```
+
+### Access Your Infrastructure
+
+After deployment:
+
+```bash
+# View all endpoints
+task output SCENARIO=gke-consul-dataplane
+
+# Configure kubectl
+gcloud container clusters get-credentials <cluster-name> --region <region>
+
+# Check Consul dataplane pods
+kubectl get pods -n consul
+
+# Access Consul UI
+open http://<consul-fqdn>:8500
+```
+
+### Testing Service Mesh
+
+Deploy a test application with automatic sidecar injection:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web
+  annotations:
+    consul.hashicorp.com/connect-inject: "true"
+spec:
+  containers:
+  - name: web
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+```
+
+```bash
+kubectl apply -f test-app.yaml
+
+# Verify sidecar injection
+kubectl get pod web -o jsonpath='{.spec.containers[*].name}'
+# Should show: web consul-dataplane
+
+# Check service in Consul
+export CONSUL_HTTP_ADDR=http://<consul-fqdn>:8500
+export CONSUL_HTTP_TOKEN=$(cat .bootstrap-token)
+consul catalog services | grep k8s-
+```
+
+### Configuration Options
+
+Key variables for the GKE scenario:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `consul_server_instances` | `1` | Number of Consul servers (use 3 for HA) |
+| `gke_cluster_name` | `gke-cluster` | Name for the GKE cluster |
+| `gke_num_nodes` | `3` | Number of GKE worker nodes |
+| `gke_machine_type` | `e2-standard-4` | Machine type for GKE nodes |
+| `kubernetes_version` | `1.29` | Kubernetes version |
+| `enable_service_mesh` | `true` | Enable automatic sidecar injection |
+| `enable_ingress_gateway` | `true` | Deploy ingress gateway LoadBalancer |
+| `helm_chart_version` | `1.3.0` | Consul Helm chart version |
+
+**Example terraform.tfvars:**
+
+```hcl
+project_id              = "my-project"
+region                  = "europe-west2"
+datacenter              = "dc1"
+consul_server_instances = 3
+gke_num_nodes           = 3
+environment             = "production"
+```
+
+### Use Cases
+
+This scenario is ideal for:
+
+- **Microservices on Kubernetes:** Deploy containerized applications with service mesh
+- **Hybrid Cloud:** Connect Kubernetes workloads to services running on VMs
+- **Service Discovery:** Use Consul as a universal service registry
+- **Zero Trust Networking:** Implement mTLS between all services
+- **Traffic Management:** Use Consul intentions for fine-grained access control
+
+### Cost Considerations
+
+Approximate monthly cost (default configuration):
+
+| Component | Instances | Type | Monthly Cost (USD) |
+|-----------|-----------|------|-------------------|
+| Consul Servers | 1 | e2-medium | ~$25 |
+| GKE Control Plane | 1 | Managed | ~$75 |
+| GKE Nodes | 3 | e2-standard-4 | ~$180 |
+| Load Balancer | 1 | Regional | ~$20 |
+| **Total** | | | **~$300/month** |
+
+For detailed scenario documentation, see `tf/scenarios/gke-consul-dataplane/README.md`.
+
+---
+
 ## Configuration
 
 ### All Variables Reference
@@ -908,7 +1058,22 @@ terraform-gcp-nomad/
 │
 └── tf/                                 # Terraform configurations
     ├── scenarios/                      # Deployment scenarios
-    │   └── nomad-consul/               # Main scenario
+    │   ├── nomad-consul/               # Full stack scenario
+    │   │   ├── main.tf
+    │   │   ├── variables.tf
+    │   │   ├── outputs.tf
+    │   │   ├── providers.tf
+    │   │   ├── versions.tf
+    │   │   ├── locals.tf
+    │   │   ├── data.tf
+    │   │   ├── network.tf
+    │   │   ├── consul.tf
+    │   │   ├── nomad.tf
+    │   │   ├── gcs.tf
+    │   │   └── observability.tf
+    │   │
+    │   └── gke-consul-dataplane/       # GKE + Consul scenario
+    │       ├── README.md
     │       ├── main.tf
     │       ├── variables.tf
     │       ├── outputs.tf
@@ -918,10 +1083,9 @@ terraform-gcp-nomad/
     │       ├── data.tf
     │       ├── network.tf
     │       ├── consul.tf
-    │       ├── nomad.tf
     │       ├── gcs.tf
-    │       ├── observability.tf
-    │       └── terraform.tfvars
+    │       ├── gke.tf
+    │       └── terraform.tfvars.example
     │
     └── modules/                        # Reusable modules
         ├── network/                    # VPC, subnets, firewall
@@ -954,20 +1118,30 @@ terraform-gcp-nomad/
         │       ├── nomad-startup.sh
         │       └── secondary-nomad-server-startup.sh
         │
-        └── observability/              # Grafana/Loki/Alloy stack
+        ├── observability/              # Grafana/Loki/Alloy stack
+        │   ├── main.tf
+        │   ├── dashboard.tf
+        │   ├── gcs.tf
+        │   ├── iam.tf
+        │   ├── variables.tf
+        │   ├── outputs.tf
+        │   └── templates/
+        │       ├── traefik.nomad.tpl
+        │       ├── loki.nomad.tpl
+        │       ├── grafana.nomad.tpl
+        │       ├── gateway.nomad.tpl
+        │       ├── collector.nomad.tpl
+        │       └── prometheus.nomad.tpl
+        │
+        └── gke-consule-dataplane/      # GKE with Consul dataplane
+            ├── README.md
             ├── main.tf
-            ├── dashboard.tf
-            ├── gcs.tf
-            ├── iam.tf
+            ├── providers.tf
+            ├── helm.tf
+            ├── firewall.tf
             ├── variables.tf
             ├── outputs.tf
-            └── templates/
-                ├── traefik.nomad.tpl
-                ├── loki.nomad.tpl
-                ├── grafana.nomad.tpl
-                ├── gateway.nomad.tpl
-                ├── collector.nomad.tpl
-                └── prometheus.nomad.tpl
+            └── versions.tf
 ```
 
 ### Module: `network`
@@ -1037,6 +1211,35 @@ Deploys the Grafana-based observability stack as Nomad jobs.
 
 **Outputs:**
 - `grafana_admin_password`
+
+### Module: `gke-consule-dataplane`
+
+Deploys a GKE cluster with Consul dataplane for service mesh integration with external Consul control plane.
+
+**Inputs:**
+- `project_id`, `region`, `cluster_name`
+- `subnet_self_link` - Subnet for GKE cluster
+- `consul_address` - FQDN or IP of Consul server
+- `consul_token` - ACL token for Consul authentication
+- `consul_datacenter` - Consul datacenter name
+- `enable_service_mesh` - Enable automatic sidecar injection
+- `enable_ingress_gateway` - Deploy Consul ingress gateway
+- `helm_chart_version` - Consul Helm chart version
+- `kubernetes_version`, `machine_type`, `gke_num_nodes`
+- `labels` - Resource labels
+
+**Outputs:**
+- `kubernetes_cluster_name`, `kubernetes_cluster_host`
+- `consul_ingress_gateway_ip` - External IP of ingress gateway
+- `consul_namespace` - Kubernetes namespace for Consul
+- `gke_cluster_ca_certificate` - Cluster CA certificate (sensitive)
+
+**Features:**
+- Service mesh with automatic mTLS between services
+- GKE services registered in Consul catalog
+- Consul DNS for `.consul` domain resolution
+- Ingress gateway with external LoadBalancer
+- Firewall rules for GKE-to-Consul connectivity
 
 ---
 
