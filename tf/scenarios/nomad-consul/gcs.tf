@@ -3,6 +3,7 @@ resource "google_storage_bucket" "default" {
   location                    = "EU"
   force_destroy               = true
   uniform_bucket_level_access = true
+  labels                      = local.common_labels
 }
 
 resource "google_storage_bucket_object" "config" {

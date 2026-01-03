@@ -47,7 +47,6 @@ variable "secondary_consul_server_instances" {
 variable "initial_management_token" {
   description = "Seed token for bootstrapping Consul's ACL system"
   type        = string
-  default     = "12335dcc-3054-4fc3-845f-74a0488c94a7"
   sensitive   = true
 }
 
@@ -78,11 +77,13 @@ variable "secondary_subnet_cidr" {
 variable "subnet_self_link" {
   description = "The subnet self link of the GCP subnetwork to use"
   default     = null
+  type        = string
 }
 
 variable "name_prefix" {
   description = "The prefix to use for all resources"
   default     = "hashicorp"
+  type        = string
 }
 
 variable "secondary_region" {
@@ -106,6 +107,7 @@ variable "secondary_datacenter" {
 variable "mgmt_cidr" {
   description = "The CIDR range for management access"
   default     = null
+  type         = string
 }
 
 variable "short_prefix" {
@@ -174,15 +176,20 @@ variable "create_dns_record" {
   default     = false
 }
 
-variable "grafana_admin_password" {
-  type        = string
-  sensitive   = true
-  default     = "admin"
-  description = "Grafana admin password"
-}
-
 variable "additional_allowed_cidrs" {
   description = "Additional CIDR blocks to allow access (e.g., office IPs, VPN ranges)"
   type        = list(string)
   default     = []
+}
+
+variable "environment" {
+  description = "Environment name (e.g., dev, staging, prod)"
+  type        = string
+  default     = "dev"
+}
+
+variable "labels" {
+  description = "Additional labels to apply to all resources"
+  type        = map(string)
+  default     = {}
 }

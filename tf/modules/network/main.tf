@@ -78,12 +78,12 @@ resource "google_compute_router_nat" "secondary" {
   }
 }
 resource "google_compute_subnetwork" "proxy_only" {
-  for_each = toset(["europe-west1", "europe-west2"])
+  for_each = toset([var.region, var.secondary_region])
 
   name          = "${var.name_prefix}-proxy-only-${each.key}"
   region        = each.key
   network       = google_compute_network.default.self_link
-  ip_cidr_range = each.key == "europe-west1" ? "10.100.0.0/24" : "10.101.0.0/24"
+  ip_cidr_range = each.key == var.region ? var.proxy_subnet_cidr : var.secondary_proxy_subnet_cidr
   purpose       = "REGIONAL_MANAGED_PROXY"
   role          = "ACTIVE"
 }

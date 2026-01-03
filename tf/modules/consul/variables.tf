@@ -55,3 +55,9 @@ variable "dns_managed_zone" {
   type        = string
   default     = "doormat-accountid"
 }
+
+variable "labels" {
+  description = "Labels to apply to all resources"
+  type        = map(string)
+  default     = {}
+}

@@ -1,4 +1,4 @@
-x§# Terraform GCP Nomad
+# Terraform GCP Nomad
 
 [![License](https://img.shields.io/badge/License-Proprietary-blue.svg)](LICENCE)
 [![Terraform](https://img.shields.io/badge/Terraform-%3E%3D1.5.0-purple.svg)](https://www.terraform.io/)
@@ -13,6 +13,8 @@ Deploy production-grade [HashiCorp Nomad](https://www.nomadproject.io/) and [Con
 - [Architecture](#architecture)
 - [Prerequisites](#prerequisites)
 - [Quick Start](#quick-start)
+- [Task Commands and Scenarios](#task-commands-and-scenarios)
+- [Nomad-Consul Scenario](#nomad-consul-scenario)
 - [Configuration](#configuration)
 - [Module Reference](#module-reference)
 - [Accessing the Cluster](#accessing-the-cluster)
@@ -312,6 +314,518 @@ task output
 
 ---
 
+## Task Commands and Scenarios
+
+This project uses [Task](https://taskfile.dev/) as a task runner to simplify complex workflows. The Taskfile provides a scenario-based deployment system that allows you to deploy different infrastructure configurations.
+
+### Understanding Scenarios
+
+A **scenario** is a specific deployment configuration that combines Terraform modules in different ways. Each scenario lives in its own directory under `tf/scenarios/`.
+
+**Available Scenarios:**
+- `nomad-consul` (default) - Full Nomad + Consul + Observability stack
+- `gke-consul-dataplane` - GKE cluster with Consul as external control plane (referenced, not yet implemented)
+- `consul-only` - Standalone Consul control plane (referenced, not yet implemented)
+
+**Scenario Selection:**
+```bash
+# Use default scenario (nomad-consul)
+task apply
+
+# Use explicit scenario
+task apply SCENARIO=nomad-consul
+
+# Use scenario shortcut
+task nomad-consul        # Equivalent to: task apply SCENARIO=nomad-consul
+task gke-dataplane       # Equivalent to: task apply SCENARIO=gke-consul-dataplane
+task consul-only         # Equivalent to: task apply SCENARIO=consul-only
+```
+
+### Task Command Reference
+
+#### Main Workflows
+
+| Command | Description | What It Does |
+|---------|-------------|--------------|
+| `task all` | Complete deployment | Creates token → Builds Packer images → Deploys infrastructure |
+| `task redeploy` | Full rebuild | Destroys infrastructure → Deletes images → Runs `task all` |
+
+#### Token Management
+
+The bootstrap token is critical for Consul ACL initialization and must be consistent across all components.
+
+| Command | Description | Use Case |
+|---------|-------------|----------|
+| `task token:ensure` | Create token if missing | Automatically called by other tasks |
+| `task token:show` | Display current token | View the bootstrap token value |
+| `task token:rotate` | Generate new token | Requires full rebuild with `task redeploy` |
+| `task token:export` | Show export command | For manual CLI operations |
+
+**Token Workflow:**
+```
+task all
+├─> task token:ensure          # Creates .bootstrap-token (UUID format)
+├─> task packer
+│   ├─> task packer:config     # Injects token into *.hcl.tmpl files
+│   └─> task packer:build      # Builds images with token baked in
+└─> task apply                 # Passes token via TF_VAR_initial_management_token
+```
+
+**Important:** The token is stored in `.bootstrap-token` at the repository root and is gitignored. Rotating the token requires rebuilding all images and redeploying infrastructure.
+
+#### Scenario Shortcuts
+
+Convenience commands that automatically select the correct scenario:
+
+| Command | Scenario | Description |
+|---------|----------|-------------|
+| `task nomad-consul` | `nomad-consul` | Deploy full stack (Nomad + Consul + Observability) |
+| `task gke-dataplane` | `gke-consul-dataplane` | Deploy GKE with Consul control plane |
+| `task consul-only` | `consul-only` | Deploy Consul control plane only |
+
+#### Terraform Operations
+
+All Terraform commands support the `SCENARIO` variable:
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `task apply` | Deploy/update infrastructure | `task apply SCENARIO=nomad-consul` |
+| `task destroy` | Tear down infrastructure | `task destroy SCENARIO=nomad-consul` |
+| `task plan` | Preview Terraform changes | `task plan SCENARIO=nomad-consul` |
+| `task output` | Show Terraform outputs | `task output` |
+
+**Behind the scenes:**
+- `SCENARIO` defaults to `nomad-consul` if not specified
+- Terraform operations run in `tf/scenarios/$SCENARIO/` directory
+- Bootstrap token is automatically injected via environment variable
+
+#### Packer Image Building
+
+Packer builds are scenario-agnostic - the same images are used across all scenarios:
+
+| Command | Description | Images Built |
+|---------|-------------|--------------|
+| `task packer` | Build all images | Runs config → init → build |
+| `task packer:config` | Generate configs from templates | Injects token into `*.hcl` files |
+| `task packer:init` | Initialize Packer | Downloads required plugins |
+| `task packer:build` | Build images in parallel | `almalinux-nomad-server`<br>`almalinux-nomad-client`<br>`almalinux-consul-server` |
+
+**Images built:**
+- `almalinux-nomad-server` - AlmaLinux 8 + Nomad Enterprise 1.10.5+ent
+- `almalinux-nomad-client` - AlmaLinux 8 + Nomad Enterprise 1.10.5+ent + Docker
+- `almalinux-consul-server` - AlmaLinux 8 + Consul Enterprise 1.19.2+ent
+
+#### Utility Commands
+
+| Command | Description | Use Case |
+|---------|-------------|----------|
+| `task clean` | Delete all custom GCP images | Cleanup before rebuild |
+| `task clean:configs` | Remove generated config files | Keeps token file |
+| `task clean:all` | Remove configs AND token | Nuclear option - full reset |
+| `task list-scenarios` | List available scenarios | View deployment options |
+| `task status` | Show environment status | Debug configuration issues |
+| `task help` | Display help and workflows | Quick reference |
+
+### How Task Commands Work with Scenarios
+
+The Taskfile uses a dynamic variable system to route commands to the correct Terraform directory:
+
+```yaml
+vars:
+  SCENARIO: '{{.SCENARIO | default "nomad-consul"}}'
+  TF_DIR: 'tf/scenarios/{{.SCENARIO}}'
+```
+
+**Example Flow:**
+
+1. **User runs:** `task apply SCENARIO=nomad-consul`
+2. **Task sets:** `TF_DIR=tf/scenarios/nomad-consul`
+3. **Task executes:**
+   ```bash
+   cd tf/scenarios/nomad-consul
+   export TF_VAR_initial_management_token=$(cat .bootstrap-token)
+   terraform init
+   terraform apply -auto-approve
+   ```
+
+**Parallel Execution:**
+
+The `task packer:build` command builds all images in parallel:
+```yaml
+packer:build:
+  deps: [packer:nomad-server, packer:nomad-client, packer:consul-server]
+```
+
+This significantly reduces build time compared to sequential execution.
+
+### Common Workflows
+
+**First-time deployment:**
+```bash
+# Everything in one command
+task all
+
+# Or step-by-step
+task token:ensure    # Create bootstrap token
+task packer          # Build VM images (~15-20 minutes)
+task apply           # Deploy infrastructure (~10-15 minutes)
+```
+
+**Update existing infrastructure:**
+```bash
+# Preview changes
+task plan
+
+# Apply changes
+task apply
+```
+
+**Rebuild after code changes:**
+```bash
+# If only Terraform changed
+task apply
+
+# If Packer configs changed
+task packer          # Rebuild images
+task apply           # Redeploy
+
+# If token changed
+task redeploy        # Full rebuild
+```
+
+**Switch between scenarios:**
+```bash
+# Deploy nomad-consul
+task apply SCENARIO=nomad-consul
+
+# Later, deploy consul-only (in different directory)
+task apply SCENARIO=consul-only
+
+# Both deployments can coexist (different tf state files)
+```
+
+**Token rotation (requires full rebuild):**
+```bash
+task token:rotate    # Interactive - generates new token
+task redeploy        # Destroys, cleans images, rebuilds everything
+```
+
+**Cleanup:**
+```bash
+# Destroy infrastructure only
+task destroy
+
+# Destroy and clean images
+task destroy
+task clean
+
+# Full cleanup including token
+task destroy
+task clean:all
+```
+
+---
+
+## Nomad-Consul Scenario
+
+The `nomad-consul` scenario is the default and most comprehensive deployment configuration. It creates a complete dual-datacenter HashiCorp stack with integrated observability.
+
+### What It Deploys
+
+The scenario creates a production-like infrastructure across two GCP regions with the following components:
+
+#### Primary Datacenter (DC1) - europe-west1
+
+**Consul Cluster:**
+- 1-3 Consul server instances (configurable via `consul_server_instances`)
+- Machine type: `e2-medium`
+- Auto-discovery using GCP network tags (`consul-server`)
+- ACL system initialized with bootstrap token from `.bootstrap-token`
+- ACL policies created for Nomad integration
+- External IPs for management access
+- Service registration and health checking enabled
+
+**Nomad Cluster:**
+- **Servers:** 1-3 Nomad server instances (configurable via `nomad_server_instances`)
+  - Machine type: `e2-medium`
+  - Raft consensus for leader election
+  - Integrated with Consul for service discovery
+
+- **Clients:** 3+ Nomad client instances (configurable via `nomad_client_instances`)
+  - Deployed as Managed Instance Group (MIG) for auto-scaling
+  - Machine type: `e2-standard-4` (configurable via `nomad_client_machine_type`)
+  - Preemptible instances enabled for cost savings
+  - Docker runtime pre-installed
+  - Disk size: 20 GB (configurable via `nomad_client_disk_size`)
+
+**Observability Stack:**
+
+The following components are deployed as Nomad jobs (when `create_nomad_jobs = true`):
+
+- **Traefik** - Reverse proxy and ingress controller
+  - Service discovery via Consul
+  - HTTP (80), HTTPS (443), API (8080), Dashboard (8081)
+  - Regional HTTP load balancers with external IPs
+  - Health checks for high availability
+
+- **Loki** - Log aggregation and storage
+  - GCS backend for long-term log storage
+  - Retention configurable via `log_retention_days`
+  - HTTP API on port 3100
+  - gRPC API on port 9096
+
+- **Grafana** - Visualization and dashboards
+  - Pre-configured Loki data source
+  - Default admin password: `admin` (configurable via `grafana_admin_password`)
+  - Port 3000
+  - Custom dashboards for Nomad/Consul metrics
+
+- **Alloy Gateway** - Centralized log receiver
+  - Single instance receiving logs from all collectors
+  - Forwards to Loki for storage
+  - Port 12346 for log ingestion
+
+- **Alloy Collectors** - Distributed log collection
+  - Deployed as Nomad system job (runs on every client)
+  - Collects system logs, Docker logs, and application logs
+  - Forwards to Alloy Gateway
+  - Port 12344 for collector endpoints
+
+#### Secondary Datacenter (DC2) - europe-west2
+
+Mirror configuration of DC1 with the following differences:
+- Region: `europe-west2` (vs `europe-west1`)
+- Datacenter name: `dc2` (vs `dc1`)
+- Separate subnet: `10.128.128.0/24` (vs `10.128.64.0/24`)
+- Independent Consul and Nomad clusters (not federated by default)
+- Same machine types and scaling configuration
+
+**Note:** Secondary datacenter can be disabled:
+```hcl
+# terraform.tfvars
+create_secondary_nomad_cluster  = false
+create_secondary_consul_cluster = false
+```
+
+#### Networking Infrastructure
+
+**VPC and Subnets:**
+- Single VPC shared across both datacenters
+- Primary subnet: `10.128.64.0/24` (europe-west1)
+- Secondary subnet: `10.128.128.0/24` (europe-west2)
+- Proxy-only subnet DC1: `10.100.0.0/24` (for regional load balancers)
+- Proxy-only subnet DC2: `10.101.0.0/24` (for regional load balancers)
+
+**NAT and Routing:**
+- Cloud NAT gateways in both regions for outbound internet access
+- Cloud Routers for dynamic routing
+- No public IPs on Nomad clients (NAT-only egress)
+
+**Load Balancing:**
+- Regional HTTP load balancers for Traefik:
+  - Traefik API load balancer (port 8080)
+  - Traefik UI load balancer (port 8081)
+- Health checks configured for `/ping` endpoint
+- Backend services targeting Nomad client MIG
+- External IP addresses for public access
+
+#### Security Configuration
+
+**Firewall Rules:**
+- **IAP SSH Access** - Port 22 from GCP IAP ranges (35.235.240.0/20)
+- **Consul Management** - Port 8500 from your public IP (auto-detected)
+- **Nomad Management** - Port 4646 from your public IP (auto-detected)
+- **Internal Cluster Communication** - All ports between tagged instances
+- **Load Balancer Health Checks** - GCP health checker ranges
+- **Traefik Ingress** - Ports 80, 443, 8080, 8081 from configured CIDRs
+- **Observability** - Ports 3000, 3100, 12344-12346 within VPC
+
+**IAM and Service Accounts:**
+- Dedicated service accounts for each component:
+  - `consul-server@` - Consul servers with Compute read-only
+  - `nomad-server@` - Nomad servers with Compute read-only
+  - `nomad-client@` - Nomad clients with GCS read/write for Loki
+- Least-privilege IAM scopes
+- Workload Identity for GKE integration (future)
+
+**ACL Tokens:**
+- Consul ACL system bootstrapped with token from `.bootstrap-token`
+- ACL policies created for:
+  - Nomad server integration
+  - Service registration
+  - Health checking
+- Token passed to Nomad via startup script
+
+#### Storage
+
+**GCS Bucket:**
+- Single bucket created: `<name_prefix>-<project_id>-<datacenter>`
+- Versioning disabled
+- Uniform bucket-level access enabled
+- Contains:
+  - Packer configuration files (`*.hcl`)
+  - Nomad Enterprise license (`nomad.hclic`)
+  - Consul Enterprise license (`consul.hclic`)
+  - Loki log chunks and index data (when observability enabled)
+
+**Lifecycle:**
+- Loki automatically manages chunk lifecycle
+- Retention configured via `log_retention_days` (default: 30 days)
+- Manual cleanup required for licenses/configs on destroy
+
+#### Resource Labeling
+
+All resources are tagged with consistent labels for cost tracking and organization:
+
+**Common Labels:**
+- `project` - Project identifier
+- `environment` - Environment (dev, staging, prod)
+- `managed_by` - Set to "terraform"
+- `component` - Component name (consul, nomad, network, etc.)
+
+**Datacenter-Specific Labels:**
+- `datacenter` - DC identifier (dc1, dc2)
+- `region` - GCP region name
+- `role` - Role identifier (consul-server, nomad-server, nomad-client)
+
+### Architecture Flow
+
+**Deployment Sequence:**
+
+1. **Network Module**
+   - Creates VPC, subnets, NAT, routers
+   - Sets up firewall rules
+   - Establishes network foundation
+
+2. **Consul Module** (if `create_consul_cluster = true`)
+   - Deploys Consul server instances
+   - Configures auto-discovery via GCP tags
+   - Bootstraps ACL system with token
+   - Creates ACL policies for Nomad
+
+3. **Nomad Module** (if `create_nomad_cluster = true`)
+   - Deploys Nomad server instances
+   - Creates Nomad client MIG with auto-scaling
+   - Integrates with Consul for service discovery
+   - Sets up load balancers for Traefik
+
+4. **Observability Module** (if `create_nomad_jobs = true`)
+   - Waits for Nomad cluster to be healthy
+   - Deploys Traefik job
+   - Deploys Loki, Grafana, Alloy jobs
+   - Configures service mesh integration
+
+5. **Secondary Datacenter** (if enabled)
+   - Repeats steps 2-4 in secondary region
+   - Creates independent clusters
+
+**Data Flow:**
+
+```
+Application Logs
+    ↓
+Alloy Collectors (system job on each node)
+    ↓
+Alloy Gateway (aggregation)
+    ↓
+Loki (log storage)
+    ↓
+GCS Bucket (long-term storage)
+    ↑
+Grafana (visualization via Loki API)
+```
+
+**Service Discovery Flow:**
+
+```
+Nomad Job → Register in Consul → Health Check → Traefik Discovery → Route Traffic
+```
+
+### Feature Flags
+
+The scenario supports fine-grained control via feature flags:
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `create_nomad_cluster` | `true` | Create primary Nomad cluster (DC1) |
+| `create_consul_cluster` | `true` | Create primary Consul cluster (DC1) |
+| `create_secondary_nomad_cluster` | `true` | Create secondary Nomad cluster (DC2) |
+| `create_secondary_consul_cluster` | `true` | Create secondary Consul cluster (DC2) |
+| `create_nomad_jobs` | `true` | Deploy observability stack as Nomad jobs |
+| `create_dns_record` | `false` | Create Cloud DNS records (requires DNS zone) |
+
+**Example Configurations:**
+
+```hcl
+# Single datacenter only
+create_secondary_nomad_cluster  = false
+create_secondary_consul_cluster = false
+
+# Infrastructure only (no observability)
+create_nomad_jobs = false
+
+# Consul-only deployment
+create_nomad_cluster = false
+create_nomad_jobs    = false
+```
+
+### Accessing the Deployed Scenario
+
+After deployment completes, use `task output` to view endpoints:
+
+```bash
+$ task output
+
+# Example output:
+consul_fqdn_dc1 = "consul-dc1-server-1.europe-west1-b.c.your-project.internal"
+nomad_fqdn_dc1  = "nomad-dc1-server-1.europe-west1-b.c.your-project.internal"
+traefik_api_ip  = "34.76.123.45"
+traefik_ui_ip   = "34.76.123.46"
+```
+
+**Access URLs:**
+- Nomad UI: `http://<nomad_fqdn_dc1>:4646`
+- Consul UI: `http://<consul_fqdn_dc1>:8500`
+- Traefik Dashboard: `http://<traefik_ui_ip>:8081`
+- Grafana: `http://grafana.traefik-dc1.<project>.<domain>:8080` (via Traefik)
+- Loki: `http://loki.traefik-dc1.<project>.<domain>:8080` (via Traefik)
+
+**CLI Configuration:**
+
+```bash
+# Export environment variables
+export NOMAD_ADDR="http://<nomad_fqdn_dc1>:4646"
+export CONSUL_HTTP_ADDR="http://<consul_fqdn_dc1>:8500"
+export CONSUL_HTTP_TOKEN="$(cat .bootstrap-token)"
+
+# Verify connectivity
+nomad server members
+consul members
+```
+
+### Cost Considerations
+
+Approximate monthly costs for default configuration (single datacenter):
+
+| Component | Instances | Type | Monthly Cost (USD) |
+|-----------|-----------|------|-------------------|
+| Consul Servers | 1 | e2-medium | ~$25 |
+| Nomad Servers | 1 | e2-medium | ~$25 |
+| Nomad Clients (preemptible) | 3 | e2-standard-4 | ~$60 |
+| Load Balancers | 2 | Regional HTTP LB | ~$40 |
+| NAT Gateway | 1 | Cloud NAT | ~$45 |
+| GCS Storage | 1 | Standard | ~$5-20 (depends on logs) |
+| **Total** | | | **~$200-215/month** |
+
+**Cost Optimization:**
+- Reduce to 1 server instance for each component in dev (HA requires 3)
+- Use smaller machine types for clients (`e2-medium` instead of `e2-standard-4`)
+- Disable secondary datacenter
+- Reduce Loki retention days
+- Use preemptible instances (already enabled for clients)
+
+---
+
 ## Configuration
 
 ### All Variables Reference
@@ -343,6 +857,9 @@ task output
 | `create_nomad_jobs` | bool | `true` | Deploy Nomad jobs |
 | `create_dns_record` | bool | `false` | Create DNS records |
 | `grafana_admin_password` | string | `admin` | Grafana admin password |
+| `environment` | string | `dev` | Environment name (dev, staging, prod) |
+| `labels` | map(string) | `{}` | Additional labels to apply to all resources |
+| `additional_allowed_cidrs` | list(string) | `[]` | Additional CIDR blocks to allow access |
 
 ### Network Configuration
 
@@ -461,11 +978,15 @@ Creates the VPC infrastructure including subnets, NAT, routers, and firewall rul
 - `name_prefix`, `short_prefix` - Naming conventions
 - `region`, `secondary_region` - GCP regions
 - `subnet_cidr`, `secondary_subnet_cidr` - Network ranges
+- `proxy_subnet_cidr`, `secondary_proxy_subnet_cidr` - Proxy-only subnet ranges
 - `mgmt_cidr` - Management access CIDR
+- `firewall_config` - Firewall rule configuration
+- `labels` - Resource labels
 
 **Outputs:**
 - `subnet_self_link`, `secondary_subnet_self_link`
 - `network_self_link`
+- `health_checker_ranges`
 
 ### Module: `consul`
 
@@ -476,6 +997,8 @@ Deploys Consul server cluster with IAM and optional DNS.
 - `consul_server_instances` - Number of servers
 - `datacenter` - Consul datacenter name
 - `gcs_bucket` - Config/license storage
+- `subnet_self_link` - Subnet for instances
+- `labels` - Resource labels
 
 **Outputs:**
 - `fqdn` - DNS name for cluster
@@ -490,6 +1013,9 @@ Deploys Nomad servers and client MIG with load balancers.
 - `nomad_server_instances`, `nomad_client_instances`
 - `datacenter` - Nomad datacenter name
 - `nomad_client_machine_type`, `nomad_client_disk_size`
+- `subnet_self_link` - Subnet for instances
+- `allowed_ingress_cidrs` - CIDRs for Traefik access
+- `labels` - Resource labels
 
 **Outputs:**
 - `fqdn` - DNS name for cluster
@@ -502,10 +1028,12 @@ Deploys Nomad servers and client MIG with load balancers.
 Deploys the Grafana-based observability stack as Nomad jobs.
 
 **Inputs:**
-- `project_id`, `region`, `data_center`
+- `project_id`, `region`, `datacenter`
 - `nomad_addr` - Nomad API address
 - `consul_token` - Consul ACL token
 - `loki_bucket_name`, `log_retention_days`
+- `nomad_client_sa_email` - Service account for GCS access
+- `labels` - Resource labels
 
 **Outputs:**
 - `grafana_admin_password`
@@ -639,24 +1167,16 @@ nomad_client_machine_type = "n2-standard-8"
 nomad_client_disk_size    = 100
 ```
 
-### Available Task Commands
+### Task Commands
 
+For a comprehensive list of all task commands and how they work with scenarios, see the [Task Commands and Scenarios](#task-commands-and-scenarios) section.
+
+Quick reference:
 ```bash
-task --list
+task --list          # List all available tasks
+task help            # Show common workflows
+task status          # Show environment status
 ```
-
-| Command | Description |
-|---------|-------------|
-| `task all` | Build images and deploy |
-| `task packer` | Build all Packer images |
-| `task apply` | Apply Terraform |
-| `task destroy` | Destroy infrastructure |
-| `task plan` | Show Terraform plan |
-| `task output` | Show outputs |
-| `task clean` | Delete GCP images |
-| `task redeploy` | Destroy, clean, and redeploy |
-| `task list-scenarios` | Show available scenarios |
-| `task status` | Show current state |
 
 ---
 

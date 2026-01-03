@@ -2,6 +2,7 @@ resource "google_storage_bucket" "loki" {
   name          = "${var.loki_bucket_name}-${var.project_id}"
   location      = var.region
   force_destroy = true
+  labels        = merge(var.labels, { service = "loki" })
 
   uniform_bucket_level_access = true
 

@@ -6,12 +6,14 @@ resource "google_compute_instance_template" "nomad_client" {
   machine_type            = var.nomad_client_machine_type
   metadata_startup_script = templatefile("${path.module}/templates/nomad-startup.sh", local.nomad_client_metadata)
   tags                    = ["nomad-client"]
+  labels                  = merge(var.labels, { role = "nomad-client" })
 
   disk {
     source_image = data.google_compute_image.almalinux_nomad_client.self_link
     disk_size_gb = var.nomad_client_disk_size
     auto_delete  = true
     boot         = true
+    labels       = var.labels
   }
 
   metadata = {
@@ -30,7 +32,12 @@ resource "google_compute_instance_template" "nomad_client" {
 
   service_account {
     email  = google_service_account.default.email
-    scopes = ["https://www.googleapis.com/auth/cloud-platform"]
+    scopes = [
+      "https://www.googleapis.com/auth/compute.readonly",
+      "https://www.googleapis.com/auth/devstorage.read_only",
+      "https://www.googleapis.com/auth/logging.write",
+      "https://www.googleapis.com/auth/monitoring.write",
+    ]
   }
 
   lifecycle {

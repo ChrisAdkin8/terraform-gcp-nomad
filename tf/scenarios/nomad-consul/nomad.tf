@@ -9,7 +9,7 @@ module "secondary_nomad" {
 
   project_id             = local.project_id
   create_nomad_cluster   = var.create_secondary_nomad_cluster
-  create_dns_record      = false   
+  create_dns_record      = false
   datacenter             = var.secondary_datacenter
   gcs_bucket             = google_storage_bucket.default.name
   name_prefix            = local.secondary_name_prefix
@@ -20,7 +20,8 @@ module "secondary_nomad" {
   subnet_self_link       = module.network.secondary_subnet_self_link
   allowed_ingress_cidrs  = concat([local.mgmt_cidr], var.additional_allowed_cidrs)
   zone                   = data.google_compute_zones.secondary.names[0]
-  base_domain            = local.base_domain  
+  base_domain            = local.base_domain
+  labels                 = local.secondary_labels
 
   depends_on = [
     consul_acl_policy.secondary_nomad_agent,
@@ -33,7 +34,7 @@ module "nomad" {
 
   project_id             = local.project_id
   create_nomad_cluster   = var.create_nomad_cluster
-  create_dns_record      = true 
+  create_dns_record      = true
   datacenter             = var.datacenter
   gcs_bucket             = google_storage_bucket.default.name
   name_prefix            = local.name_prefix
@@ -44,7 +45,8 @@ module "nomad" {
   subnet_self_link       = module.network.subnet_self_link
   allowed_ingress_cidrs  = concat([local.mgmt_cidr], var.additional_allowed_cidrs)
   zone                   = data.google_compute_zones.default.names[0]
-  base_domain            = local.base_domain  
+  base_domain            = local.base_domain
+  labels                 = local.primary_labels
 
   depends_on = [
     consul_acl_policy.nomad_agent,

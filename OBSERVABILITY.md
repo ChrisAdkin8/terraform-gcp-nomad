@@ -140,7 +140,7 @@ curl -X POST \
 
 Once the lab environment has been built, the gateway Loki endpoint is visible from ```terraform output```
 
-### Step 2: Query the Loki endpoint to ensxure that the test pauload has made its way from the gateway to Loki
+### Step 2: Query the Loki endpoint to ensure that the test payload has made its way from the gateway to Loki
 
 ```
 curl -v -G \  

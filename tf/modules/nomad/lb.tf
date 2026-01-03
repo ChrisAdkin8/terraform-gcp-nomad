@@ -119,6 +119,7 @@ resource "google_compute_forwarding_rule" "traefik_api" {
   load_balancing_scheme = "EXTERNAL_MANAGED"
   network_tier          = "STANDARD"
   ip_protocol           = "TCP"
+  labels                = merge(var.labels, { service = "traefik-api" })
 }
 
 resource "google_compute_forwarding_rule" "traefik_ui" {
@@ -130,6 +131,7 @@ resource "google_compute_forwarding_rule" "traefik_ui" {
   load_balancing_scheme = "EXTERNAL_MANAGED"
   network_tier          = "STANDARD"
   ip_protocol           = "TCP"
+  labels                = merge(var.labels, { service = "traefik-ui" })
 }
 
 # =============================================================================
@@ -139,51 +141,4 @@ resource "google_compute_forwarding_rule" "traefik_ui" {
 data "google_compute_subnetworks" "proxy" {
   filter = "purpose=REGIONAL_MANAGED_PROXY"
   region = var.region
-}
-
-resource "google_compute_firewall" "traefik_api" {
-  name    = "${var.name_prefix}-traefik-api"
-  network = "${var.short_prefix}-vpc"
-
-  allow {
-    protocol = "tcp"
-    ports    = ["8080"]
-  }
-
-  source_ranges = concat(
-    var.allowed_ingress_cidrs,                                         # Any manual overrides
-    data.google_compute_subnetworks.proxy.subnetworks[*].ip_cidr_range # The LB Traffic Source
-  )
-  
-  target_tags   = ["nomad-client"]
-}
-
-resource "google_compute_firewall" "traefik_ui" {
-  name    = "${var.name_prefix}-traefik-ui"
-  network = "${var.short_prefix}-vpc"
- 
-  allow {
-    protocol = "tcp"
-    ports    = ["8081"]
-  }
-
-  source_ranges = var.allowed_ingress_cidrs
-  target_tags   = ["nomad-client"]
-  
-  description = "Allow Traefik UI access from approved CIDRs only"
-}
-
-# Health check probes from GCP
-resource "google_compute_firewall" "health_checks" {
-  name    = "${var.name_prefix}-health-checks"
-  network = "${var.short_prefix}-vpc"
-
-  allow {
-    protocol = "tcp"
-    ports    = ["8080", "8081"]
-  }
-
-  source_ranges = data.google_netblock_ip_ranges.health_checkers.cidr_blocks
-
-  target_tags = ["nomad-client"]
 }

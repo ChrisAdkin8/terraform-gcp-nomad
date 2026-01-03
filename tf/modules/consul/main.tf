@@ -1,11 +1,3 @@
-locals {
-  consul_server_metadata = {
-    DATACENTER = var.datacenter
-    GCS_BUCKET = var.gcs_bucket
-    REGION     = var.region
-  }
-}
-
 resource "google_compute_instance" "consul_servers" {
   count                   = var.create_consul_cluster ? var.consul_server_instances : 0
   name                    = "${var.name_prefix}-consul-server-${count.index + 1}"
@@ -13,7 +5,8 @@ resource "google_compute_instance" "consul_servers" {
   metadata_startup_script = templatefile("${path.module}/templates/consul-server-startup.sh", local.consul_server_metadata)
   zone                    = var.zone
 
-  tags = ["consul-server"]
+  tags   = ["consul-server"]
+  labels = merge(var.labels, { role = "consul-server" })
 
   boot_disk {
     initialize_params {
@@ -41,7 +34,12 @@ resource "google_compute_instance" "consul_servers" {
 
   service_account {
     email  = google_service_account.default.email
-    scopes = ["https://www.googleapis.com/auth/cloud-platform"]
+    scopes = [
+      "https://www.googleapis.com/auth/compute.readonly",
+      "https://www.googleapis.com/auth/devstorage.read_only",
+      "https://www.googleapis.com/auth/logging.write",
+      "https://www.googleapis.com/auth/monitoring.write",
+    ]
   }
 
   lifecycle {

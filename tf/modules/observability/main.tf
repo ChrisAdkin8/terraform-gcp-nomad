@@ -16,7 +16,7 @@ resource "nomad_job" "traefik" {
 
 resource "nomad_job" "loki" {
   jobspec = templatefile("${path.module}/templates/loki.nomad.tpl",  {
-    host_url_suffix = "traefik-${var.data_center}.${var.project_id}.${var.base_domain}"
+    host_url_suffix = "traefik-${var.datacenter}.${var.project_id}.${var.base_domain}"
   })
 
   depends_on = [ 
@@ -39,7 +39,7 @@ resource "null_resource" "wait_for_loki" {
     command = <<-EOT
       echo "Waiting for Loki to be healthy..."
       for i in $(seq 1 60); do
-        if curl -sf "http://loki.traefik-${var.data_center}.${var.project_id}.${var.base_domain}:8080/ready" > /dev/null 2>&1; then
+        if curl -sf "http://loki.traefik-${var.datacenter}.${var.project_id}.${var.base_domain}:8080/ready" > /dev/null 2>&1; then
           echo "Loki is ready!"
           exit 0
         fi
@@ -54,7 +54,7 @@ resource "null_resource" "wait_for_loki" {
 
 resource "nomad_job" "gateway" {
   jobspec = templatefile("${path.module}/templates/gateway.nomad.tpl",  {
-    host_url_suffix = "traefik-${var.data_center}.${var.project_id}.${var.base_domain}"
+    host_url_suffix = "traefik-${var.datacenter}.${var.project_id}.${var.base_domain}"
   })
 
   depends_on = [
@@ -65,7 +65,7 @@ resource "nomad_job" "gateway" {
 
 resource "nomad_job" "collector" {
   jobspec = templatefile("${path.module}/templates/collector.nomad.tpl",  {
-    host_url_suffix = "traefik-${var.data_center}.${var.project_id}.${var.base_domain}"
+    host_url_suffix = "traefik-${var.datacenter}.${var.project_id}.${var.base_domain}"
   })
 
   depends_on = [
@@ -84,7 +84,7 @@ resource "nomad_variable" "grafana_admin_password" {
 
 resource "nomad_job" "grafana" {
   jobspec = templatefile("${path.module}/templates/grafana.nomad.tpl",  {
-    host_url_suffix = "traefik-${var.data_center}.${var.project_id}.${var.base_domain}"
+    host_url_suffix = "traefik-${var.datacenter}.${var.project_id}.${var.base_domain}"
   })
 
   depends_on = [

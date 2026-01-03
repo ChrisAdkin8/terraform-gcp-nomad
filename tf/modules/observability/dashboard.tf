@@ -21,7 +21,7 @@ resource "null_resource" "grafana_dashboard" {
     EOF
 
     environment = {
-      GRAFANA_URL  = "http://grafana.traefik-${var.data_center}.${var.project_id}.${var.base_domain}:8080"
+      GRAFANA_URL  = "http://grafana.traefik-${var.datacenter}.${var.project_id}.${var.base_domain}:8080"
       GRAFANA_AUTH = "admin:${random_password.grafana_admin.result}"
     }
   }
