@@ -21,10 +21,16 @@ tasks:
 
   all:
     desc: Build images and deploy infrastructure
+    vars:
+      SCENARIO: '{{.SCENARIO}}'
     cmds:
       - task: token:ensure
       - task: packer
+        vars:
+          SCENARIO: "{{.SCENARIO}}"
       - task: apply
+        vars:
+          SCENARIO: "{{.SCENARIO}}"
 
   redeploy:
     desc: Destroy, clean, and redeploy infrastructure
@@ -203,13 +209,18 @@ tasks:
   # =============================================================================
   
   packer:
-    desc: Build all Packer images
+    desc: Build Packer images for scenario
+    vars:
+      SCENARIO: '{{.SCENARIO}}'
     cmds:
       - task: token:ensure
       - task: packer:config
       - task: packer:init
+      - echo 'Building for scenario{{":"}} {{.SCENARIO}}'
       - task: packer:build
-      - echo "✓ All packer builds complete."
+        vars:
+          SCENARIO: '{{.SCENARIO}}'
+      - echo '✓ Packer builds complete for scenario{{":"}} {{.SCENARIO}}'
 
   packer:config:
     desc: Generate Packer config files from templates
@@ -237,16 +248,46 @@ tasks:
       - packer init packer/gcp-almalinux-consul-server.pkr.hcl
 
   packer:build:
-    deps: [packer:nomad-server, packer:nomad-client, packer:consul-server]
+    vars:
+      SCENARIO: '{{.SCENARIO}}'
+    cmds:
+      - task: packer:build-for-scenario
+        vars:
+          SCENARIO: '{{.SCENARIO}}'
+
+  packer:build-for-scenario:
+    desc: Build images based on scenario requirements
+    cmds:
+      - |
+        echo "Building images for scenario{{":"}} {{.SCENARIO}}"
+        case "{{.SCENARIO}}" in
+          "gke-consul-dataplane")
+            echo "→ Building consul-server only (GKE dataplane doesn't need Nomad)"
+            task packer:consul-server
+            ;;
+          "consul-only")
+            echo "→ Building consul-server only"
+            task packer:consul-server
+            ;;
+          "nomad-consul"|*)
+            echo "→ Building all images (Nomad + Consul stack)"
+            task packer:consul-server
+            task packer:nomad-server
+            task packer:nomad-client
+            ;;
+        esac
 
   packer:nomad-server:
-    cmd: packer build -var-file=packer/variables.pkrvars.hcl packer/gcp-almalinux-nomad-server.pkr.hcl
+    cmds:
+      - packer build -var-file=packer/variables.pkrvars.hcl packer/gcp-almalinux-nomad-server.pkr.hcl
 
   packer:nomad-client:
-    cmd: packer build -var-file=packer/variables.pkrvars.hcl packer/gcp-almalinux-nomad-client.pkr.hcl
+    cmds:
+      - packer build -var-file=packer/variables.pkrvars.hcl packer/gcp-almalinux-nomad-client.pkr.hcl
 
   packer:consul-server:
-    cmd: packer build -var-file=packer/variables.pkrvars.hcl packer/gcp-almalinux-consul-server.pkr.hcl
+    cmds:
+      - packer build -var-file=packer/variables.pkrvars.hcl packer/gcp-almalinux-consul-server.pkr.hcl
 
   # =============================================================================
   # Utility tasks

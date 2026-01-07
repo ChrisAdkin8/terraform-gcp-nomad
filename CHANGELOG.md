@@ -18,9 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Task command shortcut: `task gke-dataplane`
   - Feature flags for flexible deployment (create_consul_cluster, create_gke_cluster)
   - Cost estimate: ~$300/month for default configuration
-- **GKE Consul Dataplane Module** - New `gke-consule-dataplane` module for deploying GKE clusters with Consul service mesh integration
+- **GKE Consul Dataplane Module** - New `gke-consul-dataplane` module for deploying GKE clusters with Consul service mesh integration
   - GKE cluster deployment with workload identity enabled
-  - Consul dataplane deployment via official HashiCorp Helm chart (version 1.3.0 default)
+  - Consul dataplane deployment via official HashiCorp Helm chart (version 1.5.0 default)
   - Automatic sidecar injection for service mesh with mTLS between services
   - GKE services registered in Consul catalog with `k8s-` prefix
   - Consul DNS integration for `.consul` domain resolution from Kubernetes pods
@@ -29,6 +29,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Integration with existing VPC infrastructure via `subnet_self_link` variable
   - Kubernetes provider (~> 2.25) and Helm provider (~> 2.12) support
   - Module README with comprehensive usage examples and troubleshooting guide
+- **Configurable Logging for GKE Consul Dataplane Module** - Added comprehensive logging configuration support
+  - `global_log_level` variable for setting log level across all Consul components (trace, debug, info, warn, error)
+  - `global_log_json` variable to enable JSON-formatted logs for log aggregation tools
+  - `client_log_level` variable for component-specific logging of Consul dataplane clients
+  - `connect_inject_log_level` variable for component-specific logging of service mesh sidecar injection
+  - Terraform validation constraints ensure only valid log levels can be passed
+  - Component-specific log levels default to null and inherit from global setting when not specified
+  - Enables granular debugging without flooding all component logs
 - Resource labels support across all modules (`labels`, `environment` variables)
 - `versions.tf` to observability module with proper provider constraints
 - `proxy_subnet_cidr` and `secondary_proxy_subnet_cidr` variables to network module
@@ -37,11 +45,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Multi-datacenter support with primary and secondary cluster deployments
 
 ### Changed
-- **GKE Module Architecture** - Transitioned `gke-consule-dataplane` module from self-contained VPC to external networking
+- **Packer Task Scenario-Awareness** - Optimized Packer image building to only build required images for each scenario
+  - Added new `packer:build-for-scenario` task that inspects the `SCENARIO` variable
+  - `gke-consul-dataplane` scenario now only builds `consul-server` image (was building all 3)
+  - `consul-only` scenario only builds `consul-server` image
+  - `nomad-consul` scenario builds all images (consul-server, nomad-server, nomad-client)
+  - `task all SCENARIO=gke-consul-dataplane` now saves ~10-15 minutes by skipping unnecessary Nomad image builds
+  - Updated Taskfile.yml to pass `SCENARIO` variable through the entire `all` → `packer` → `packer:build` chain
+  - Updated README.md documentation to reflect scenario-aware image building with build time savings
+- **Consul Enterprise Version Update** - Updated Consul Enterprise to latest GA release
+  - Upgraded from `1.19.2+ent` to `1.22.2+ent` in Packer provisioning scripts
+  - Updated `packer/scripts/provision-consul.sh` with new version
+  - Updated `packer/scripts/provision-nomad.sh` with new version
+  - Updated README.md documentation to reflect new version
+  - Requires rebuilding Packer images with `task packer`
+- **GKE Consul Dataplane Module - Directory Rename** - Fixed typo in module directory name
+  - Renamed module from `gke-consule-dataplane` to `gke-consul-dataplane` (removed typo in "consul")
+  - Updated all documentation references to use correct spelling
+  - Module path is now `tf/modules/gke-consul-dataplane`
+- **GKE Consul Dataplane Module - Major Refactoring** - Reorganized `gke-consul-dataplane` module for improved maintainability and clarity
+  - Restructured files by logical function instead of tool/resource type:
+    - `cluster.tf` - GKE cluster and node pool configuration
+    - `consul-acl.tf` - Consul ACL auth method and binding rules
+    - `consul-deploy.tf` - Namespace, secrets, and Helm release
+    - `iam.tf` - All service accounts (GCP and Kubernetes) consolidated
+    - `data.tf` - All data sources in one location
+  - Deleted obsolete files: `main.tf`, `helm.tf`, `locals.tf` (content reorganized)
+  - Improved code organization with clear separation of concerns
+  - Added comprehensive comments and section headers for better readability
+- **Network Module NAT Configuration** - Enhanced Cloud NAT configuration for better subnet isolation
+  - Changed NAT configuration from `ALL_SUBNETWORKS_ALL_IP_RANGES` to `LIST_OF_SUBNETWORKS`
+  - Added explicit subnet configuration for primary and secondary NAT gateways
+  - Provides better control over which subnets use Cloud NAT for egress traffic
+  - Improves network security and predictability
+- **GKE Scenario Consul Integration** - Enhanced Consul connectivity for GKE dataplane scenario
+  - Added `consul_internal_address` parameter for direct internal IP connectivity
+  - Updated module source path to use corrected module name (`gke-consul-dataplane`)
+  - Added configurable log level support for debugging (e.g., `client_log_level = "trace"`)
+  - Improved Consul server address configuration using external IPs with port specification
+- **GKE Module Architecture** - Transitioned `gke-consul-dataplane` module from self-contained VPC to external networking
   - Removed `vpc.tf` file (VPC and subnet now provided externally via `subnet_self_link` variable)
   - Added data sources to extract network information from provided subnet
   - Updated GKE cluster to use provided network and subnet instead of creating its own
   - Added workload identity configuration for enhanced security
+- **GKE Consul Dataplane Module - Helm Configuration** - Enhanced Helm chart deployment configuration
+  - Updated default Helm chart version from 1.3.0 to 1.5.0
+  - Added dynamic log level configuration in Helm values using `merge()` function
+  - Component-specific log levels conditionally added only when explicitly set (avoids unnecessary overrides)
 - Renamed `data_center` variable to `datacenter` for consistency across all modules
 - Standardized Terraform version constraint to `>= 1.5.0` across all modules
 - Standardized Google provider version to `~> 6.0` across all modules
@@ -71,17 +121,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Feature flags for fine-grained control
   - Access methods and CLI configuration examples
   - Cost breakdown and optimization strategies
-- Added `gke-consule-dataplane` module documentation:
+- Added `gke-consul-dataplane` module documentation:
   - Comprehensive README.md in module directory with architecture diagram
-  - Usage examples (basic, minimal, service discovery only, custom Helm version)
-  - Complete inputs/outputs reference table
+  - Usage examples (basic, minimal, service discovery only, custom Helm version, debug logging configuration)
+  - Complete inputs/outputs reference table with logging configuration variables
   - Feature documentation (service mesh, service discovery, DNS, ingress gateway)
   - Networking and firewall rules documentation
   - Security considerations and production recommendations
-  - Troubleshooting guide with kubectl/helm commands
+  - Troubleshooting guide with kubectl/helm commands and debug logging instructions
   - Integration examples with Consul module
   - Resources created reference
-- Updated main README.md Module Reference section with `gke-consule-dataplane` module
+  - Debug logging section explaining global vs component-specific log levels
+  - Examples showing JSON log format usage with jq for better log readability
+- Updated main README.md Module Reference section with `gke-consul-dataplane` module
 - Added "GKE Consul Dataplane Scenario" section to main README with:
   - Complete architecture overview (Consul control plane + GKE dataplane)
   - Quick deployment instructions
@@ -95,11 +147,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reorganized Customization section to reference comprehensive task commands documentation
 
 ### Fixed
+- **GKE Consul Dataplane Module - Critical Bug Fixes**:
+  - Fixed circular dependency in `data.tf` where `data.google_container_cluster.primary` referenced the cluster being created
+  - Fixed GKE node pool cluster reference to use `google_container_cluster.primary.name` instead of `var.cluster_name` (prevents drift)
+  - Resolved service account confusion - consolidated three different service account references into a single consistent implementation
+  - Moved `google_client_config` data source from `providers.tf` to `data.tf` for proper organization
+  - Removed duplicate outputs (`ingress_gateway_ip` removed, kept `consul_ingress_gateway_ip` with improved error handling)
+  - Removed unused variables: `gke_num_nodes` and `short_prefix`
+  - Cleaned up formatting issues (removed extra blank lines in `firewall.tf`)
 - Consul module outputs now correctly return external and internal IPs
 - Removed provider definition from GKE child module (was breaking provider inheritance)
 - Fixed stray character in README.md title
 
 ### Security
+- **GKE Consul Dataplane Module - Firewall Parameterization**:
+  - Added `ingress_gateway_source_ranges` variable to make ingress gateway firewall rules configurable
+  - Default remains `["0.0.0.0/0"]` for backward compatibility, but can now be restricted to specific CIDR ranges
+  - Added warning in variable description about security implications of public internet access
+  - Added warning comment in `consul-deploy.tf` about TLS being disabled
 - Added `sensitive = true` to password and token variables
 - Implemented least-privilege IAM scopes for compute instances
 

@@ -188,7 +188,7 @@ The deployment creates the following infrastructure:
 | Component | Version |
 |-----------|---------|
 | Nomad Enterprise | 1.10.5+ent |
-| Consul Enterprise | 1.19.2+ent |
+| Consul Enterprise | 1.22.2+ent |
 | AlmaLinux | 8.x |
 | Google Cloud Ops Agent | Latest |
 
@@ -401,19 +401,30 @@ All Terraform commands support the `SCENARIO` variable:
 
 #### Packer Image Building
 
-Packer builds are scenario-agnostic - the same images are used across all scenarios:
+Packer builds are now **scenario-aware** - only required images are built for each scenario:
 
-| Command | Description | Images Built |
-|---------|-------------|--------------|
-| `task packer` | Build all images | Runs config → init → build |
+| Command | Description | What Gets Built |
+|---------|-------------|-----------------|
+| `task packer` | Build images for current scenario | Builds only what's needed for `SCENARIO` |
+| `task packer SCENARIO=nomad-consul` | Build all images | consul-server, nomad-server, nomad-client |
+| `task packer SCENARIO=gke-consul-dataplane` | Build Consul only | consul-server only |
 | `task packer:config` | Generate configs from templates | Injects token into `*.hcl` files |
 | `task packer:init` | Initialize Packer | Downloads required plugins |
-| `task packer:build` | Build images in parallel | `almalinux-nomad-server`<br>`almalinux-nomad-client`<br>`almalinux-consul-server` |
 
-**Images built:**
+**Scenario Image Requirements:**
+
+| Scenario | Images Built | Reason |
+|----------|--------------|--------|
+| `nomad-consul` | consul-server<br>nomad-server<br>nomad-client | Full Nomad + Consul stack |
+| `gke-consul-dataplane` | consul-server only | GKE uses containers, only Consul VMs needed |
+| `consul-only` | consul-server only | Consul control plane only |
+
+**Available Images:**
 - `almalinux-nomad-server` - AlmaLinux 8 + Nomad Enterprise 1.10.5+ent
 - `almalinux-nomad-client` - AlmaLinux 8 + Nomad Enterprise 1.10.5+ent + Docker
-- `almalinux-consul-server` - AlmaLinux 8 + Consul Enterprise 1.19.2+ent
+- `almalinux-consul-server` - AlmaLinux 8 + Consul Enterprise 1.22.2+ent
+
+**Note:** This optimization significantly reduces build time for scenarios that don't require all images. For example, deploying `gke-consul-dataplane` now only builds 1 image instead of 3, saving ~10-15 minutes.
 
 #### Utility Commands
 
@@ -448,26 +459,33 @@ vars:
    terraform apply -auto-approve
    ```
 
-**Parallel Execution:**
+**Scenario-Aware Image Building:**
 
-The `task packer:build` command builds all images in parallel:
-```yaml
-packer:build:
-  deps: [packer:nomad-server, packer:nomad-client, packer:consul-server]
+The `task packer` command now intelligently builds only the images required for your scenario:
+
+```bash
+# When deploying gke-consul-dataplane, only builds consul-server
+task all SCENARIO=gke-consul-dataplane
+
+# When deploying nomad-consul (default), builds all three images
+task all SCENARIO=nomad-consul
 ```
 
-This significantly reduces build time compared to sequential execution.
+This optimization significantly reduces build time - for example, `gke-consul-dataplane` builds 1 image instead of 3, saving ~10-15 minutes.
 
 ### Common Workflows
 
 **First-time deployment:**
 ```bash
-# Everything in one command
+# Everything in one command (default nomad-consul scenario)
 task all
+
+# Or for a specific scenario (e.g., GKE with Consul)
+task all SCENARIO=gke-consul-dataplane  # Only builds consul-server image
 
 # Or step-by-step
 task token:ensure    # Create bootstrap token
-task packer          # Build VM images (~15-20 minutes)
+task packer          # Build VM images (scenario-aware)
 task apply           # Deploy infrastructure (~10-15 minutes)
 ```
 
@@ -1133,12 +1151,15 @@ terraform-gcp-nomad/
         │       ├── collector.nomad.tpl
         │       └── prometheus.nomad.tpl
         │
-        └── gke-consule-dataplane/      # GKE with Consul dataplane
+        └── gke-consul-dataplane/       # GKE with Consul dataplane
             ├── README.md
-            ├── main.tf
+            ├── cluster.tf              # GKE cluster configuration
+            ├── consul-acl.tf           # Consul ACL auth method
+            ├── consul-deploy.tf        # Helm release and secrets
+            ├── data.tf                 # Data sources
+            ├── firewall.tf             # Firewall rules
+            ├── iam.tf                  # Service accounts
             ├── providers.tf
-            ├── helm.tf
-            ├── firewall.tf
             ├── variables.tf
             ├── outputs.tf
             └── versions.tf
@@ -1161,6 +1182,10 @@ Creates the VPC infrastructure including subnets, NAT, routers, and firewall rul
 - `subnet_self_link`, `secondary_subnet_self_link`
 - `network_self_link`
 - `health_checker_ranges`
+
+**Recent Enhancements:**
+- Cloud NAT now uses explicit subnet configuration (`LIST_OF_SUBNETWORKS`) for better control and security
+- Each NAT gateway is configured with specific subnets rather than all subnets automatically
 
 ### Module: `consul`
 
@@ -1212,19 +1237,22 @@ Deploys the Grafana-based observability stack as Nomad jobs.
 **Outputs:**
 - `grafana_admin_password`
 
-### Module: `gke-consule-dataplane`
+### Module: `gke-consul-dataplane`
 
 Deploys a GKE cluster with Consul dataplane for service mesh integration with external Consul control plane.
 
 **Inputs:**
 - `project_id`, `region`, `cluster_name`
 - `subnet_self_link` - Subnet for GKE cluster
-- `consul_address` - FQDN or IP of Consul server
+- `consul_address` - External Consul server address (with port, e.g., "1.2.3.4:8500")
+- `consul_internal_address` - Internal IP for direct Consul connectivity
 - `consul_token` - ACL token for Consul authentication
 - `consul_datacenter` - Consul datacenter name
 - `enable_service_mesh` - Enable automatic sidecar injection
 - `enable_ingress_gateway` - Deploy Consul ingress gateway
-- `helm_chart_version` - Consul Helm chart version
+- `helm_chart_version` - Consul Helm chart version (default: 1.5.0)
+- `global_log_level`, `client_log_level`, `connect_inject_log_level` - Logging configuration
+- `global_log_json` - Enable JSON log format
 - `kubernetes_version`, `machine_type`, `gke_num_nodes`
 - `labels` - Resource labels
 
@@ -1240,6 +1268,15 @@ Deploys a GKE cluster with Consul dataplane for service mesh integration with ex
 - Consul DNS for `.consul` domain resolution
 - Ingress gateway with external LoadBalancer
 - Firewall rules for GKE-to-Consul connectivity
+- Configurable logging for debugging (global and component-specific)
+
+**File Organization:**
+- `cluster.tf` - GKE cluster and node pool configuration
+- `consul-acl.tf` - Consul ACL authentication method and binding rules
+- `consul-deploy.tf` - Kubernetes namespace, secrets, and Helm chart deployment
+- `iam.tf` - GCP and Kubernetes service account management
+- `firewall.tf` - Network security rules for Consul connectivity
+- `data.tf` - Data source queries for cluster and network information
 
 ---
 
@@ -1351,9 +1388,9 @@ Edit the Packer scripts:
 vim packer/scripts/provision-nomad.sh
 # Change: export NOMAD_VERSION="1.10.5+ent"
 
-# Consul version  
+# Consul version
 vim packer/scripts/provision-consul.sh
-# Change: export CONSUL_VERSION="1.19.2+ent"
+# Change: export CONSUL_VERSION="1.22.2+ent"
 ```
 
 Rebuild images:

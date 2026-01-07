@@ -16,5 +16,8 @@ provider "helm" {
   }
 }
 
-# Data source for GCP credentials
-data "google_client_config" "default" {}
+# Consul provider configuration
+provider "consul" {
+  address = var.consul_address
+  token   = var.consul_token
+}

@@ -78,7 +78,7 @@ variable "enable_ingress_gateway" {
 variable "helm_chart_version" {
   description = "Consul Helm chart version"
   type        = string
-  default     = "1.3.0"
+  default     = "1.9.2"
 }
 
 variable "create_consul_cluster" {

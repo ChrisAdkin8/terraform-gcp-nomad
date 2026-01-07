@@ -35,7 +35,12 @@ resource "google_compute_router_nat" "default" {
   region                             = var.region
   router                             = google_compute_router.default.name
   nat_ip_allocate_option             = "AUTO_ONLY"
-  source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
+  source_subnetwork_ip_ranges_to_nat = "LIST_OF_SUBNETWORKS"
+
+  subnetwork {
+    name                    = google_compute_subnetwork.default.id
+    source_ip_ranges_to_nat = ["ALL_IP_RANGES"]
+  }
 
   log_config {
     enable = local.nat_log_config.enable
@@ -70,7 +75,12 @@ resource "google_compute_router_nat" "secondary" {
   region                             = var.secondary_region
   router                             = google_compute_router.secondary.name
   nat_ip_allocate_option             = "AUTO_ONLY"
-  source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
+  source_subnetwork_ip_ranges_to_nat = "LIST_OF_SUBNETWORKS"
+
+  subnetwork {
+    name                    = google_compute_subnetwork.secondary.id
+    source_ip_ranges_to_nat = ["ALL_IP_RANGES"]
+  }
 
   log_config {
     enable = local.nat_log_config.enable

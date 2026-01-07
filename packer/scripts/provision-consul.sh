@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export CONSUL_VERSION="1.19.2+ent"
+export CONSUL_VERSION="1.22.2+ent"
 
 # Update system packages
 sudo dnf update -y

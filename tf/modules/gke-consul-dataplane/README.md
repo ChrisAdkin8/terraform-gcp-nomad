@@ -149,7 +149,11 @@ module "gke_dataplane" {
 | kubernetes_version | Kubernetes version for the GKE cluster | `string` | `"1.22.12-gke.2300"` | no |
 | enable_service_mesh | Enable Consul service mesh with sidecar injection | `bool` | `true` | no |
 | enable_ingress_gateway | Deploy Consul ingress gateway | `bool` | `true` | no |
-| helm_chart_version | Consul Helm chart version | `string` | `"1.3.0"` | no |
+| helm_chart_version | Consul Helm chart version | `string` | `"1.5.0"` | no |
+| global_log_level | Global log level for all Consul components. Valid values: trace, debug, info, warn, error | `string` | `"info"` | no |
+| global_log_json | Enable JSON formatted logs for all components | `bool` | `false` | no |
+| client_log_level | Log level for Consul client (dataplane). If null, uses global_log_level. Valid values: trace, debug, info, warn, error | `string` | `null` | no |
+| connect_inject_log_level | Log level for service mesh sidecar injection. If null, uses global_log_level. Valid values: trace, debug, info, warn, error | `string` | `null` | no |
 | labels | Labels to apply to all resources | `map(string)` | `{}` | no |
 
 ## Outputs
@@ -272,6 +276,24 @@ For production deployments:
 
 ## Troubleshooting
 
+### Enable Debug Logging
+
+For troubleshooting, enable debug logging by setting:
+
+```hcl
+global_log_level = "debug"
+global_log_json  = true  # Optional: JSON format for log aggregation tools
+```
+
+Or enable debug logging only for specific components:
+
+```hcl
+client_log_level         = "debug"  # For Consul dataplane issues
+connect_inject_log_level = "debug"  # For service mesh injection issues
+```
+
+Apply the changes with `terraform apply`, then check pod logs.
+
 ### Verify Helm Deployment
 
 ```bash
@@ -284,6 +306,9 @@ helm list -n consul
 ```bash
 kubectl get pods -n consul
 kubectl logs -n consul <pod-name> -c consul-dataplane
+
+# For JSON logs, pipe to jq for better readability
+kubectl logs -n consul <pod-name> -c consul-dataplane | jq
 ```
 
 ### Test Consul Connectivity
@@ -364,6 +389,32 @@ module "gke_dataplane" {
   helm_chart_version = "1.4.0"
 }
 ```
+
+### Debug Logging Configuration
+
+```hcl
+module "gke_dataplane" {
+  source = "../../modules/gke-consule-dataplane"
+
+  project_id       = "my-project"
+  cluster_name     = "gke-cluster"
+  subnet_self_link = module.network.subnet_self_link
+
+  consul_address    = module.consul.fqdn
+  consul_token      = var.consul_token
+
+  # Enable debug logging globally
+  global_log_level = "debug"
+  global_log_json  = true
+
+  # Or set debug level for specific components only
+  # global_log_level        = "info"
+  # client_log_level        = "debug"  # Debug only Consul dataplane
+  # connect_inject_log_level = "debug"  # Debug only service mesh injection
+}
+```
+
+**Note:** Valid log levels are `trace`, `debug`, `info` (default), `warn`, and `error`. Setting log levels below `info` can generate significant log volume. Use component-specific log levels to limit verbosity to only the components you're debugging.
 
 ## Resources Created
 
