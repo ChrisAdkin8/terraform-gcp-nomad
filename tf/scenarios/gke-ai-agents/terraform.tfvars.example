@@ -1,0 +1,41 @@
+# GCP Configuration
+project_id = "your-gcp-project-id"
+region     = "europe-west2"
+# zone     = "europe-west2-a"  # Optional, will use first available zone if not specified
+
+# Consul Configuration
+datacenter              = "dc1"
+initial_management_token = "your-consul-bootstrap-token-here"  # Generate with: uuidgen or cat .bootstrap-token
+consul_server_instances = 1  # Use 3 for HA in production
+
+# Networking
+subnet_cidr = "10.128.64.0/24"
+
+# GKE Configuration
+gke_cluster_name   = "ai-agents-cluster"
+gke_num_nodes      = 3  # Recommended: 3 for production, 1-2 for dev/testing
+gke_machine_type   = "e2-standard-4"  # Options: e2-medium, e2-standard-4, e2-standard-8
+kubernetes_version = "1.29"
+
+# Service Mesh Configuration
+enable_service_mesh    = true  # Required for agent communication
+enable_ingress_gateway = true  # Required for external access to orchestrator
+helm_chart_version     = "1.9.2"
+
+# AI Agents Configuration
+agent_image_tag        = "latest"  # Or specific version: v1.0.0
+orchestrator_replicas  = 2  # Number of orchestrator instances for HA
+worker_replicas        = 1  # Number of replicas per worker type
+
+# Feature Flags
+create_consul_cluster  = true  # Set to false to use existing Consul cluster
+create_gke_cluster     = true  # Set to false to use existing GKE cluster
+deploy_agents          = true  # Set to false to deploy infrastructure only
+
+# Environment and Labels
+environment = "dev"  # Options: dev, staging, prod
+labels = {
+  team        = "platform"
+  cost_center = "engineering"
+  purpose     = "ai-agents-demo"
+}

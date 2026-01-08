@@ -15,6 +15,8 @@ Deploy production-grade [HashiCorp Nomad](https://www.nomadproject.io/) and [Con
 - [Quick Start](#quick-start)
 - [Task Commands and Scenarios](#task-commands-and-scenarios)
 - [Nomad-Consul Scenario](#nomad-consul-scenario)
+- [GKE Consul Dataplane Scenario](#gke-consul-dataplane-scenario)
+- [AI Agent Orchestration Scenario](#ai-agent-orchestration-scenario)
 - [Configuration](#configuration)
 - [Module Reference](#module-reference)
 - [Accessing the Cluster](#accessing-the-cluster)
@@ -325,6 +327,7 @@ A **scenario** is a specific deployment configuration that combines Terraform mo
 **Available Scenarios:**
 - `nomad-consul` (default) - Full Nomad + Consul + Observability stack
 - `gke-consul-dataplane` - GKE cluster with Consul service mesh connected to external Consul control plane
+- `gke-ai-agents` - AI agent orchestration hierarchy with Consul service mesh guardrails (NEW)
 - `consul-only` - Standalone Consul control plane (referenced, not yet implemented)
 
 **Scenario Selection:**
@@ -338,6 +341,7 @@ task apply SCENARIO=nomad-consul
 # Use scenario shortcut
 task nomad-consul        # Equivalent to: task apply SCENARIO=nomad-consul
 task gke-dataplane       # Equivalent to: task apply SCENARIO=gke-consul-dataplane
+task ai-agents           # Equivalent to: task apply SCENARIO=gke-ai-agents
 task consul-only         # Equivalent to: task apply SCENARIO=consul-only
 ```
 
@@ -381,6 +385,7 @@ Convenience commands that automatically select the correct scenario:
 |---------|----------|-------------|
 | `task nomad-consul` | `nomad-consul` | Deploy full stack (Nomad + Consul + Observability) |
 | `task gke-dataplane` | `gke-consul-dataplane` | Deploy GKE cluster with Consul service mesh |
+| `task ai-agents` | `gke-ai-agents` | Deploy AI agent hierarchy with service mesh guardrails |
 | `task consul-only` | `consul-only` | Deploy Consul control plane only |
 
 #### Terraform Operations
@@ -417,6 +422,7 @@ Packer builds are now **scenario-aware** - only required images are built for ea
 |----------|--------------|--------|
 | `nomad-consul` | consul-server<br>nomad-server<br>nomad-client | Full Nomad + Consul stack |
 | `gke-consul-dataplane` | consul-server only | GKE uses containers, only Consul VMs needed |
+| `gke-ai-agents` | consul-server only | AI agents run as containers on GKE, only Consul VMs needed |
 | `consul-only` | consul-server only | Consul control plane only |
 
 **Available Images:**
@@ -994,6 +1000,167 @@ For detailed scenario documentation, see `tf/scenarios/gke-consul-dataplane/READ
 
 ---
 
+## AI Agent Orchestration Scenario
+
+The `gke-ai-agents` scenario demonstrates hierarchical AI agent orchestration on GKE with strict communication policies enforced by Consul service mesh. This scenario showcases zero-trust networking for AI agent systems.
+
+### What It Deploys
+
+This scenario creates a complete AI agent hierarchy with service mesh guardrails:
+
+#### Consul Control Plane
+- **Consul Servers:** 1-3 instances (configurable)
+- **Machine Type:** e2-medium
+- **ACL:** Enabled with bootstrap token
+- **Service Discovery:** Automatic peer discovery
+- **Service Mesh:** Intentions for zero-trust security
+
+#### AI Agent Applications
+- **Orchestrator Agent:** Entry point for external requests (2 replicas for HA)
+  - Receives task requests via HTTP
+  - Delegates work to specialized workers
+  - Aggregates results and returns response
+  - Exposed externally via Consul ingress gateway
+
+- **Worker Agents:** Specialized task processors (1 replica each)
+  - **Research Agent** - Information gathering and research tasks
+  - **Code Agent** - Code generation and analysis
+  - **Data Agent** - Data processing and transformation
+  - **Analysis Agent** - Analytical tasks and insights
+
+#### Security Model
+```
+✓ ALLOWED:
+  - External → Ingress Gateway → Orchestrator
+  - Orchestrator → All Workers
+  - Workers → Orchestrator (responses)
+
+✗ BLOCKED:
+  - External → Workers (direct access)
+  - Worker → Worker (lateral movement prevention)
+```
+
+#### GKE Cluster
+- **Kubernetes Version:** 1.29 (configurable)
+- **Node Count:** 3 nodes (configurable)
+- **Machine Type:** e2-standard-4 (configurable)
+- **Service Mesh:** Consul dataplane with automatic sidecar injection
+- **Ingress Gateway:** External LoadBalancer for orchestrator access
+
+### Quick Deployment
+
+```bash
+# 1. Build agent container images
+cd apps/ai-agents
+./build.sh your-gcp-project-id latest
+
+# 2. Deploy infrastructure
+cd ../../tf/scenarios/gke-ai-agents
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars with your project ID and token
+
+terraform init
+terraform apply
+
+# Or use task shortcut (after building images)
+task ai-agents
+```
+
+### Access Your Infrastructure
+
+After deployment:
+
+```bash
+# View all endpoints and test commands
+terraform output cluster_summary
+
+# Configure kubectl
+gcloud container clusters get-credentials <cluster-name> --region <region>
+
+# Check agent pods
+kubectl get pods -n ai-agents
+
+# Test orchestrator
+ORCHESTRATOR_URL=$(terraform output -raw orchestrator_url)
+curl $ORCHESTRATOR_URL/health
+
+# Delegate task to workers
+curl -X POST $ORCHESTRATOR_URL/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"task": "Analyze Q4 performance"}'
+```
+
+### Demo Scenarios
+
+The scenario includes 5 comprehensive demos:
+
+1. **Successful Task Delegation** - Orchestrator successfully calls all workers
+2. **Blocked Worker-to-Worker** - Demonstrates lateral movement prevention
+3. **Consul UI Visualization** - View service mesh topology
+4. **Test Individual Workers** - Verify specific connections
+5. **CLI Intention Verification** - Inspect policies from command line
+
+### Configuration Options
+
+Key variables for the AI agents scenario:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `consul_server_instances` | `1` | Number of Consul servers |
+| `gke_cluster_name` | `ai-agents-cluster` | GKE cluster name |
+| `gke_num_nodes` | `3` | Number of GKE nodes |
+| `agent_image_tag` | `latest` | Docker image tag for agents |
+| `orchestrator_replicas` | `2` | Orchestrator instances for HA |
+| `worker_replicas` | `1` | Worker instances per type |
+| `deploy_agents` | `true` | Deploy agent applications |
+
+### Use Cases
+
+This scenario demonstrates:
+
+- **Zero-Trust AI Systems:** Explicit allow/deny for agent communication
+- **Hierarchical Agent Patterns:** Orchestrator delegates to specialized workers
+- **Lateral Movement Prevention:** Workers cannot communicate peer-to-peer
+- **Service Discovery:** Agents discover each other via Consul DNS
+- **Observable AI Systems:** Full visibility via Consul UI
+- **Production Patterns:** Ready for real LLM integration (OpenAI, Anthropic, etc.)
+
+### Extending with Real AI
+
+The application code is designed for easy extension:
+
+```python
+# Add to worker/app.py
+from openai import OpenAI
+
+client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+
+def generate_agent_response(task):
+    response = client.chat.completions.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": task}]
+    )
+    return response.choices[0].message.content
+```
+
+See `apps/ai-agents/README.md` for complete extension examples.
+
+### Cost Considerations
+
+Approximate monthly cost (default configuration):
+
+| Component | Instances | Type | Monthly Cost (USD) |
+|-----------|-----------|------|-------------------|
+| Consul Servers | 1 | e2-medium | ~$25 |
+| GKE Control Plane | 1 | Managed | ~$75 |
+| GKE Nodes | 3 | e2-standard-4 | ~$180 |
+| Load Balancer | 1 | Regional | ~$20 |
+| **Total** | | | **~$300/month** |
+
+For detailed scenario documentation and troubleshooting, see `tf/scenarios/gke-ai-agents/README.md`.
+
+---
+
 ## Configuration
 
 ### All Variables Reference
@@ -1060,6 +1227,19 @@ terraform-gcp-nomad/
 ├── docs/
 │   └── reference-diagram.png           # Architecture diagram
 │
+├── apps/                               # Application code
+│   └── ai-agents/                      # AI agent orchestration demo
+│       ├── orchestrator/
+│       │   ├── app.py
+│       │   ├── Dockerfile
+│       │   └── requirements.txt
+│       ├── worker/
+│       │   ├── app.py
+│       │   ├── Dockerfile
+│       │   └── requirements.txt
+│       ├── build.sh                    # Image build script
+│       └── README.md
+│
 ├── packer/                             # VM image definitions
 │   ├── variables.pkrvars.hcl           # Packer variables
 │   ├── gcp-almalinux-nomad-server.pkr.hcl
@@ -1090,7 +1270,22 @@ terraform-gcp-nomad/
     │   │   ├── gcs.tf
     │   │   └── observability.tf
     │   │
-    │   └── gke-consul-dataplane/       # GKE + Consul scenario
+    │   ├── gke-consul-dataplane/       # GKE + Consul scenario
+    │   │   ├── README.md
+    │   │   ├── main.tf
+    │   │   ├── variables.tf
+    │   │   ├── outputs.tf
+    │   │   ├── providers.tf
+    │   │   ├── versions.tf
+    │   │   ├── locals.tf
+    │   │   ├── data.tf
+    │   │   ├── network.tf
+    │   │   ├── consul.tf
+    │   │   ├── gcs.tf
+    │   │   ├── gke.tf
+    │   │   └── terraform.tfvars.example
+    │   │
+    │   └── gke-ai-agents/              # AI agent orchestration scenario
     │       ├── README.md
     │       ├── main.tf
     │       ├── variables.tf
@@ -1102,7 +1297,9 @@ terraform-gcp-nomad/
     │       ├── network.tf
     │       ├── consul.tf
     │       ├── gcs.tf
+    │       ├── firewall.tf
     │       ├── gke.tf
+    │       ├── ai-agents.tf            # Calls ai-agents-mesh module
     │       └── terraform.tfvars.example
     │
     └── modules/                        # Reusable modules
@@ -1151,17 +1348,27 @@ terraform-gcp-nomad/
         │       ├── collector.nomad.tpl
         │       └── prometheus.nomad.tpl
         │
-        └── gke-consul-dataplane/       # GKE with Consul dataplane
+        ├── gke-consul-dataplane/       # GKE with Consul dataplane
+        │   ├── README.md
+        │   ├── cluster.tf              # GKE cluster configuration
+        │   ├── consul-acl.tf           # Consul ACL auth method
+        │   ├── consul-deploy.tf        # Helm release and secrets
+        │   ├── data.tf                 # Data sources
+        │   ├── firewall.tf             # Firewall rules
+        │   ├── iam.tf                  # Service accounts
+        │   ├── providers.tf
+        │   ├── variables.tf
+        │   ├── outputs.tf
+        │   └── versions.tf
+        │
+        └── ai-agents-mesh/             # AI agent orchestration with service mesh
             ├── README.md
-            ├── cluster.tf              # GKE cluster configuration
-            ├── consul-acl.tf           # Consul ACL auth method
-            ├── consul-deploy.tf        # Helm release and secrets
-            ├── data.tf                 # Data sources
-            ├── firewall.tf             # Firewall rules
-            ├── iam.tf                  # Service accounts
-            ├── providers.tf
+            ├── agents.tf               # Kubernetes agent deployments
+            ├── intentions.tf           # Consul service mesh intentions
+            ├── ingress.tf              # Consul ingress gateway config
             ├── variables.tf
             ├── outputs.tf
+            ├── providers.tf
             └── versions.tf
 ```
 
@@ -1276,7 +1483,46 @@ Deploys a GKE cluster with Consul dataplane for service mesh integration with ex
 - `consul-deploy.tf` - Kubernetes namespace, secrets, and Helm chart deployment
 - `iam.tf` - GCP and Kubernetes service account management
 - `firewall.tf` - Network security rules for Consul connectivity
-- `data.tf` - Data source queries for cluster and network information
+
+### Module: `ai-agents-mesh`
+
+Deploys a hierarchical AI agent orchestration system on Kubernetes with Consul service mesh security guardrails.
+
+**Inputs:**
+- `project_id` - GCP project ID where agent images are stored in GCR
+- `namespace` - Kubernetes namespace for AI agents (default: "ai-agents")
+- `agent_image_tag` - Docker image tag for agent containers (default: "latest")
+- `orchestrator_replicas` - Number of orchestrator replicas (default: 2)
+- `worker_replicas` - Number of replicas per worker type (default: 1)
+- `enable_ingress_gateway` - Enable Consul ingress gateway configuration (default: true)
+- `labels` - Labels to apply to all Kubernetes resources
+- `consul_http_addr` - Consul HTTP API address (optional)
+
+**Outputs:**
+- `namespace` - Kubernetes namespace where agents are deployed
+- `orchestrator_service_name` - Name of orchestrator service
+- `worker_service_names` - Map of worker service names
+- `service_endpoints` - Consul service endpoints for all agents
+
+**Features:**
+- 1 Orchestrator agent + 4 Worker agents (research, code, data, analysis)
+- Zero-trust security with Consul service mesh intentions
+- Orchestrator → Workers: ALLOWED
+- Worker → Worker: BLOCKED (lateral movement prevention)
+- External access via Consul ingress gateway (optional)
+- mTLS between all services via Consul sidecars
+- Service discovery via Consul DNS
+
+**File Organization:**
+- `agents.tf` - Kubernetes namespace, deployments, and services for all agents
+- `intentions.tf` - Consul service-defaults and service-intentions for security policies
+- `ingress.tf` - Consul ingress gateway and service router configuration
+- `README.md` - Comprehensive module documentation with usage examples
+
+**Prerequisites:**
+- GKE cluster with Consul dataplane (use `gke-consul-dataplane` module)
+- Agent Docker images pushed to GCR (see `apps/ai-agents/build.sh`)
+- Kubernetes and Consul providers configured
 
 ---
 

@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **AI Agents Mesh Module** - New `ai-agents-mesh` module for deploying hierarchical AI agent orchestration with Consul service mesh
+  - Deploys 1 orchestrator agent and 4 specialized worker agents (research, code, data, analysis)
+  - Implements zero-trust security model with Consul service mesh intentions
+  - Orchestrator → Workers communication: ALLOWED by explicit intentions
+  - Worker → Worker lateral movement: BLOCKED by service mesh policies
+  - Optional Consul ingress gateway configuration for external access to orchestrator
+  - Configurable replica counts for orchestrator and workers
+  - Resource labeling support for cost tracking and organization
+  - Module can be used standalone or as part of the gke-ai-agents scenario
+  - Comprehensive module README with usage examples, troubleshooting, and security considerations
+- **AI Agent Orchestration Scenario** - New `gke-ai-agents` scenario demonstrating hierarchical AI agent orchestration with Consul service mesh guardrails
+  - Complete scenario in `tf/scenarios/gke-ai-agents/` directory
+  - Deploys Consul control plane (1-3 servers) for service mesh
+  - Deploys GKE cluster with Consul dataplane integration via `gke-consul-dataplane` module
+  - Deploys AI agents via `ai-agents-mesh` module
+  - Scenario orchestrates multiple modules: network, consul, gke-consul-dataplane, ai-agents-mesh
+  - External access only to orchestrator via Consul ingress gateway
+  - Flask-based Python applications demonstrating agent communication patterns
+  - Docker images for orchestrator and workers (built via build.sh script)
+  - Comprehensive scenario README with deployment guide and 5 demo scenarios
+  - Application README in `apps/ai-agents/` with extension examples for real LLM integration
+  - Task command shortcut: `task ai-agents`
+  - Cost estimate: ~$311/month for default configuration
+  - Demonstrates production-ready patterns for AI agent systems on Kubernetes
+- **AI Agents Mesh Module Documentation** - Comprehensive module documentation in `tf/modules/ai-agents-mesh/README.md`
+  - Architecture overview and security model explanation
+  - Basic and complete usage examples with GKE and Consul
+  - Complete inputs/outputs reference tables
+  - Testing procedures for service mesh intentions
+  - Resources created reference (Kubernetes and Consul resources)
+  - Extension examples for adding new worker types and real AI capabilities
+  - Troubleshooting guide with kubectl and Consul CLI commands
+  - Security considerations for production deployments
+- **AI Agent Applications** - Complete application code for hierarchical agent orchestration demo
+  - Orchestrator agent (Flask) with task delegation, worker discovery via Consul DNS, and result aggregation
+  - Worker agents (Flask) with specialized capabilities (research, code, data, analysis)
+  - Endpoints for testing allowed/blocked communication patterns
+  - Dockerfiles for orchestrator and worker containers (Python 3.11-slim)
+  - Build script (`build.sh`) for automated image building and pushing to GCR
+  - Support for extending with real AI capabilities (OpenAI, Anthropic, LangChain)
 - **GKE Consul Dataplane Scenario** - New `gke-consul-dataplane` scenario for deploying GKE with Consul service mesh
   - Complete scenario in `tf/scenarios/gke-consul-dataplane/` directory
   - Deploys Consul control plane (1-3 servers) with ACL enabled
@@ -45,6 +85,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Multi-datacenter support with primary and secondary cluster deployments
 
 ### Changed
+- **AI Agents Scenario Architecture** - Refactored from inline resources to proper modular structure
+  - Moved Kubernetes agent deployments from scenario to `ai-agents-mesh` module
+  - Moved Consul intentions configuration from scenario to `ai-agents-mesh` module
+  - Moved Consul ingress gateway configuration from scenario to `ai-agents-mesh` module
+  - Scenario now orchestrates modules instead of defining resources inline
+  - Follows repository pattern where scenarios call modules (matching gke-consul-dataplane, nomad-consul patterns)
+  - Module can be reused in other scenarios or projects
+  - Improved maintainability and testability of agent deployment logic
 - **Packer Task Scenario-Awareness** - Optimized Packer image building to only build required images for each scenario
   - Added new `packer:build-for-scenario` task that inspects the `SCENARIO` variable
   - `gke-consul-dataplane` scenario now only builds `consul-server` image (was building all 3)
