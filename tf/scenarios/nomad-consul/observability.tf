@@ -1,6 +1,10 @@
 module "observability" {
   source = "../../modules/observability"
 
+  providers = {
+    nomad = nomad.with_acl_token
+  }
+
   project_id            = local.project_id
   nomad_addr            = "http://${module.nomad.fqdn}:4646"
   consul_token          = var.initial_management_token
@@ -14,6 +18,7 @@ module "observability" {
 
   depends_on = [
     module.nomad,
-    null_resource.nomad_consul_setup
+    null_resource.nomad_consul_setup,
+    data.external.nomad_acl_bootstrap_token
   ]
 }

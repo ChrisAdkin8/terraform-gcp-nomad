@@ -15,6 +15,13 @@ provider "nomad" {
   region  = var.region
 }
 
+provider "nomad" {
+  alias     = "with_acl_token"
+  address   = "http://${module.nomad.fqdn}:4646"
+  region    = var.region
+  secret_id = var.create_nomad_cluster ? data.external.nomad_acl_bootstrap_token[0].result.token : ""
+}
+
 provider "consul" {
   alias   = "primary"
   address = "http://${module.consul.fqdn}:8500"

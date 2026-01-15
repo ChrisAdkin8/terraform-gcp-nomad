@@ -53,14 +53,6 @@ job "loki" {
 
       template {
         data = <<EOF
-{{ with nomadVar "nomad/jobs/loki/loki_group/loki" }}{{ .gcs_service_account_key }}{{ end }}
-EOF
-        destination = "secrets/gcs-key.json"
-        change_mode = "restart"
-      }
-      
-      template {
-        data = <<EOF
 auth_enabled: false
 
 server:
@@ -76,7 +68,7 @@ common:
   path_prefix: /loki
   storage:
     gcs:
-      bucket_name: {{ with nomadVar "nomad/jobs/loki/loki_group/loki" }}{{ .gcs_bucket_name }}{{ end }}
+      bucket_name: {{ with nomadVar "nomad/jobs/loki/loki/loki" }}{{ .gcs_bucket_name }}{{ end }}
       chunk_buffer_size: 104857600
       request_timeout: 0s
       enable_http2: true

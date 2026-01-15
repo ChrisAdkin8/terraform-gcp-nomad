@@ -36,10 +36,14 @@ override.tf.json
 .terraformrc
 terraform.rc
 
-# Ignore HashiCorp license files 
+# Ignore HashiCorp license files
 *.hclic
 *.zip
 .bootstrap-token
 packer/configs/*.hcl
 !packer/configs/*.hcl.tmpl
 packer/variables.pkrvars.hcl
+
+# Nomad ACL bootstrap token files
+nomad_acl_bootstrap_token*.txt
+.claude

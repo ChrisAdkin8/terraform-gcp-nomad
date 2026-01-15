@@ -37,7 +37,7 @@ Deploy production-grade [HashiCorp Nomad](https://www.nomadproject.io/) and [Con
 
 This deployment has **not** been hardened for production use regarding:
 
-- **Security**: No TLS/mTLS, basic ACL configuration, broad firewall rules
+- **Security**: No TLS/mTLS, ACLs enabled but with bootstrap tokens only, broad firewall rules
 - **High Availability**: Single-zone deployments, no cross-region failover
 - **Performance**: Default machine types may not suit production workloads
 - **Scalability**: Manual scaling, no autoscaling configured
@@ -574,6 +574,8 @@ The scenario creates a production-like infrastructure across two GCP regions wit
   - Machine type: `e2-medium`
   - Raft consensus for leader election
   - Integrated with Consul for service discovery
+  - ACL system enabled and bootstrapped automatically
+  - Bootstrap token saved to `nomad_acl_bootstrap_token.txt`
 
 - **Clients:** 3+ Nomad client instances (configurable via `nomad_client_instances`)
   - Deployed as Managed Instance Group (MIG) for auto-scaling
@@ -581,6 +583,7 @@ The scenario creates a production-like infrastructure across two GCP regions wit
   - Preemptible instances enabled for cost savings
   - Docker runtime pre-installed
   - Disk size: 20 GB (configurable via `nomad_client_disk_size`)
+  - ACL-enabled, authenticates with server cluster
 
 **Observability Stack:**
 
@@ -673,12 +676,20 @@ create_secondary_consul_cluster = false
 - Workload Identity for GKE integration (future)
 
 **ACL Tokens:**
-- Consul ACL system bootstrapped with token from `.bootstrap-token`
-- ACL policies created for:
-  - Nomad server integration
-  - Service registration
-  - Health checking
-- Token passed to Nomad via startup script
+- **Consul ACLs:**
+  - Bootstrapped with token from `.bootstrap-token`
+  - ACL policies created for:
+    - Nomad server integration
+    - Service registration
+    - Health checking
+  - Token passed to Nomad via startup script
+
+- **Nomad ACLs:**
+  - ACL system enabled on all servers and clients
+  - Bootstrap token generated automatically during `terraform apply`
+  - Token saved to `nomad_acl_bootstrap_token.txt` (primary) and `nomad_acl_bootstrap_token_secondary.txt` (secondary)
+  - Token exposed via `nomad_acl_bootstrap_token` Terraform output
+  - Required for all Nomad CLI operations after deployment
 
 #### Storage
 
@@ -728,19 +739,30 @@ All resources are tagged with consistent labels for cost tracking and organizati
    - Creates ACL policies for Nomad
 
 3. **Nomad Module** (if `create_nomad_cluster = true`)
-   - Deploys Nomad server instances
+   - Deploys Nomad server instances with ACLs enabled
    - Creates Nomad client MIG with auto-scaling
    - Integrates with Consul for service discovery
    - Sets up load balancers for Traefik
 
-4. **Observability Module** (if `create_nomad_jobs = true`)
+4. **Nomad ACL Bootstrap**
+   - Waits for Nomad API to be available
+   - Bootstraps Nomad ACL system
+   - Captures management token to local file
+   - Token used for subsequent Nomad operations
+
+5. **Nomad-Consul Integration**
+   - Runs `nomad setup consul` with ACL token
+   - Configures Consul service identity for Nomad workloads
+   - Sets up JWT authentication between Nomad and Consul
+
+6. **Observability Module** (if `create_nomad_jobs = true`)
    - Waits for Nomad cluster to be healthy
    - Deploys Traefik job
    - Deploys Loki, Grafana, Alloy jobs
    - Configures service mesh integration
 
-5. **Secondary Datacenter** (if enabled)
-   - Repeats steps 2-4 in secondary region
+7. **Secondary Datacenter** (if enabled)
+   - Repeats steps 2-6 in secondary region
    - Creates independent clusters
 
 **Data Flow:**
@@ -1545,12 +1567,19 @@ After deployment, `task output` displays:
 ```bash
 # Set environment variables
 export NOMAD_ADDR="http://<nomad-fqdn>:4646"
+export NOMAD_TOKEN="<nomad-acl-token>"  # From terraform output or nomad_acl_bootstrap_token.txt
 export CONSUL_HTTP_ADDR="http://<consul-fqdn>:8500"
-export CONSUL_HTTP_TOKEN="<your-acl-token>"
+export CONSUL_HTTP_TOKEN="<consul-acl-token>"
 
 # Verify connectivity
 nomad server members
 consul members
+```
+
+**Note:** Both Nomad and Consul require ACL tokens for CLI access. Retrieve tokens with:
+```bash
+terraform output nomad_acl_bootstrap_token
+terraform output consul_acl_bootstrap_token
 ```
 
 ### SSH Access
@@ -1749,7 +1778,8 @@ gcloud compute ssh <instance> --zone=<zone> --tunnel-through-iap \
 |------|---------------|---------------------------|
 | **TLS** | Disabled | Enable TLS for all services |
 | **mTLS** | Disabled | Enable Consul Connect |
-| **ACLs** | Basic token | Implement fine-grained policies |
+| **Consul ACLs** | Enabled with bootstrap token | Implement fine-grained policies |
+| **Nomad ACLs** | Enabled with bootstrap token | Implement fine-grained policies |
 | **Firewall** | Wide open internally | Restrict to required ports |
 | **External Access** | Public IPs | Use private IPs + bastion |
 | **Secrets** | In tfvars | Use Secret Manager or Vault |
@@ -1763,7 +1793,10 @@ Sensitive values are marked in Terraform:
 # View sensitive outputs
 terraform output grafana_admin_password
 terraform output consul_acl_bootstrap_token
+terraform output nomad_acl_bootstrap_token
 ```
+
+**Note:** The Nomad ACL bootstrap token is also saved to `nomad_acl_bootstrap_token.txt` in the scenario directory for convenience.
 
 ### Firewall Rules
 

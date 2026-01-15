@@ -2,7 +2,7 @@
 resource "google_compute_instance_template" "nomad_client" {
   count = var.create_nomad_cluster ? 1 : 0
 
-  name                    = "${var.name_prefix}-nomad-client"
+  name_prefix             = "${var.name_prefix}-nomad-client-"
   machine_type            = var.nomad_client_machine_type
   metadata_startup_script = templatefile("${path.module}/templates/nomad-startup.sh", local.nomad_client_metadata)
   tags                    = ["nomad-client"]
@@ -41,6 +41,7 @@ resource "google_compute_instance_template" "nomad_client" {
   }
 
   lifecycle {
+    create_before_destroy = true
     ignore_changes = [
       disk[0].source_image,
     ]

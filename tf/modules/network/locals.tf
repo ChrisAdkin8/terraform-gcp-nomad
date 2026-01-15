@@ -75,11 +75,12 @@ locals {
     
     nomad_client_internal = {
       direction   = "INGRESS"
-      source_tags = ["nomad-server", "nomad-client"]
+      source_tags = ["nomad-server", "nomad-client", "consul-server"]
       target_tags = ["nomad-client"]
       rules = [
         { protocol = "icmp", ports = null },
-        { protocol = "tcp", ports = ["4647", "8301", "3100", "3000", "9090", "12344", "12345", "12346"] }
+        { protocol = "tcp", ports = ["4647", "8301", "3100", "3000", "9090", "12344", "12345", "12346"] },
+        { protocol = "udp", ports = ["8301"] }
       ]
       description = "Nomad client communication and observability"
     }

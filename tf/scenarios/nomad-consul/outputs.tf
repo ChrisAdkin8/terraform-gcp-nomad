@@ -21,16 +21,16 @@ output "cluster_summary" {
     "---------------------------------------------",
     var.create_secondary_nomad_cluster  ? "Nomad Management Console  : http://${module.secondary_nomad.fqdn}:4646" : "Nomad Management Console  : (Not created)",
     var.create_secondary_consul_cluster ? "Consul Management Console : http://${module.secondary_consul.fqdn}:8500" : "Consul Management Console  : (Not created)",
-    "",    
+    "",
     "Nomad Server External IPs : ${join(", ", module.secondary_nomad.external_server_ips)}",
     "Consul Server External IPs: ${join(", ", module.secondary_consul.external_server_ips)}",
     "",
     "### Sensitive Information ###",
     "-----------------------------",
-    "Consul ACL Bootstrap Token: (See separate sensitive output for security)"
+    "Consul ACL Bootstrap Token: (See consul_acl_bootstrap_token output)",
+    "Nomad ACL Bootstrap Token : (See nomad_acl_bootstrap_token output)"
   ])
 }
-
 output "grafana_admin_password" {
   value     = module.observability.grafana_admin_password
   sensitive = true
@@ -39,4 +39,16 @@ output "grafana_admin_password" {
 output "consul_acl_bootstrap_token" {
   value     = var.initial_management_token
   sensitive = true
+}
+
+output "nomad_acl_bootstrap_token" {
+  description = "The Nomad ACL bootstrap management token for the primary cluster"
+  value       = var.create_nomad_cluster ? try(data.external.nomad_acl_bootstrap_token[0].result.token, "") : ""
+  sensitive   = true
+}
+
+output "secondary_nomad_acl_bootstrap_token" {
+  description = "The Nomad ACL bootstrap management token for the secondary cluster"
+  value       = var.create_secondary_nomad_cluster ? try(data.external.secondary_nomad_acl_bootstrap_token[0].result.token, "") : ""
+  sensitive   = true
 }

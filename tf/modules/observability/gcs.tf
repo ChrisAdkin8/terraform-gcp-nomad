@@ -31,7 +31,7 @@ resource "google_storage_bucket" "loki" {
 }
 
 resource "nomad_variable" "loki_gcs" {
-  path = "nomad/jobs/loki/loki_group/loki"
+  path = "nomad/jobs/loki/loki/loki"
 
   items = {
     gcs_bucket_name = google_storage_bucket.loki.name

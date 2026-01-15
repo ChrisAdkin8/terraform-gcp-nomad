@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Nomad ACL Support** - Nomad clusters now deploy with ACLs enabled by default
+  - ACL system enabled in Nomad server and client configurations (`acl { enabled = true }`)
+  - Automatic ACL bootstrap during Terraform apply with token capture
+  - Bootstrap token saved to `nomad_acl_bootstrap_token.txt` for primary cluster
+  - Bootstrap token saved to `nomad_acl_bootstrap_token_secondary.txt` for secondary cluster
+  - Token exposed via `nomad_acl_bootstrap_token` Terraform output
+  - `nomad setup consul` command now authenticates with Nomad ACL token
+  - Proper dependency ordering: ACL bootstrap runs before Consul integration setup
+  - Supports re-running Terraform after initial deployment (handles "already bootstrapped" state)
 - **AI Agents Mesh Module** - New `ai-agents-mesh` module for deploying hierarchical AI agent orchestration with Consul service mesh
   - Deploys 1 orchestrator agent and 4 specialized worker agents (research, code, data, analysis)
   - Implements zero-trust security model with Consul service mesh intentions
@@ -85,6 +94,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Multi-datacenter support with primary and secondary cluster deployments
 
 ### Changed
+- **Nomad-Consul Setup Dependency Order** - Reordered resource dependencies for proper ACL token handling
+  - `nomad_acl_bootstrap` now runs before `nomad_consul_setup`
+  - `nomad_consul_setup` and `secondary_nomad_consul_setup` now include `NOMAD_TOKEN` environment variable
+  - Fixes "Permission denied" errors when re-applying Terraform after ACLs have been bootstrapped
 - **AI Agents Scenario Architecture** - Refactored from inline resources to proper modular structure
   - Moved Kubernetes agent deployments from scenario to `ai-agents-mesh` module
   - Moved Consul intentions configuration from scenario to `ai-agents-mesh` module
@@ -195,6 +208,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reorganized Customization section to reference comprehensive task commands documentation
 
 ### Fixed
+- **Loki Job Template** - Removed unused service account key template block
+  - The template was referencing `gcs_service_account_key` which was never set in the Nomad variable
+  - Loki now uses Application Default Credentials (ADC) from GCE instance metadata
+  - Fixes "Template: Missing: nomad.var.block" error when deploying Loki job
+- **Network Module Firewall Rules** - Fixed Consul/Nomad memberlist communication failures
+  - Added UDP port 8301 to `nomad_client_internal` firewall rule (was TCP only)
+  - Added `consul-server` to source tags for `nomad_client_internal` rule
+  - Fixes "Push/Pull failed: dial tcp x.x.x.x:8301: i/o timeout" errors in Consul server logs
+  - Enables proper Serf LAN gossip protocol communication between Consul servers and agents on Nomad clients
 - **GKE Consul Dataplane Module - Critical Bug Fixes**:
   - Fixed circular dependency in `data.tf` where `data.google_container_cluster.primary` referenced the cluster being created
   - Fixed GKE node pool cluster reference to use `google_container_cluster.primary.name` instead of `var.cluster_name` (prevents drift)
