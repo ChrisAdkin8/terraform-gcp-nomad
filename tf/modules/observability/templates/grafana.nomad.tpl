@@ -95,9 +95,6 @@ datasources:
       maxLines: 1000
       timeout: 120
       queryTimeout: "120s"
-      httpHeaderName1: "X-Scope-OrgID"
-    secureJsonData:
-      httpHeaderValue1: "tenant1"
 EOF
         destination = "local/provisioning/datasources/datasources.yaml"
         change_mode = "restart"
@@ -120,6 +117,16 @@ providers:
 EOF
         destination = "local/provisioning/dashboards/dashboards.yaml"
         change_mode = "restart"
+      }
+
+      # Dashboard JSON from the Nomad variable set by the observability
+      # module. Grafana rescans this folder every 30s, so no restart.
+      template {
+        data        = <<EOF
+{{ with nomadVar "nomad/jobs/grafana/monitoring" }}{{ .nomad_logs }}{{ end }}
+EOF
+        destination = "local/provisioning/dashboards/nomad-logs.json"
+        change_mode = "noop"
       }
 
       template {

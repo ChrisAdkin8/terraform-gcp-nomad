@@ -19,7 +19,7 @@ output "cluster_summary" {
     "",
     "### Secondary Cluster Endpoints & Details ###",
     "---------------------------------------------",
-    var.create_secondary_nomad_cluster  ? "Nomad Management Console  : http://${module.secondary_nomad.fqdn}:4646" : "Nomad Management Console  : (Not created)",
+    var.create_secondary_nomad_cluster ? "Nomad Management Console  : http://${module.secondary_nomad.fqdn}:4646" : "Nomad Management Console  : (Not created)",
     var.create_secondary_consul_cluster ? "Consul Management Console : http://${module.secondary_consul.fqdn}:8500" : "Consul Management Console  : (Not created)",
     "",
     "Nomad Server External IPs : ${join(", ", module.secondary_nomad.external_server_ips)}",
@@ -32,7 +32,7 @@ output "cluster_summary" {
   ])
 }
 output "grafana_admin_password" {
-  value     = module.observability.grafana_admin_password
+  value     = one(module.observability[*].grafana_admin_password)
   sensitive = true
 }
 

@@ -13,9 +13,6 @@ job "traefik" {
       port "api" {
         static = 8081
       }
-      port "otlp" {
-        static = 4317
-      }
     }
     
     service {
@@ -46,15 +43,7 @@ job "traefik" {
     checkNewVersion = false
     sendAnonymousUsage = false
 
-[entryPoints]    
-    [entryPoints.otlp-grpc]
-    address = ":4317"
-    [entryPoints.otlp-grpc.transport]
-        [entryPoints.otlp-grpc.transport.respondingTimeouts]
-            readTimeout = "60s"
-            writeTimeout = "60s"
-            idleTimeout = "180s"
-    
+[entryPoints]
     [entryPoints.http]
     address = ":8080"
     [entryPoints.http.transport]
@@ -71,7 +60,7 @@ job "traefik" {
     insecure  = true
 
 [log]
-    level  = "DEBUG"
+    level  = "INFO"
     format = "common"
 
 [accessLog]
@@ -80,6 +69,13 @@ job "traefik" {
         defaultMode = "keep"
         [accessLog.fields.headers]
             defaultMode = "keep"
+            # The access log goes to stdout, which the Alloy collectors ship
+            # to Loki. Never log credentials or session cookies.
+            [accessLog.fields.headers.names]
+                Authorization       = "drop"
+                Proxy-Authorization = "drop"
+                Cookie              = "drop"
+                Set-Cookie          = "drop"
 
 [serversTransport]
     maxIdleConnsPerHost = 200

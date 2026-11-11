@@ -31,10 +31,14 @@ resource "google_compute_instance_template" "nomad_client" {
   }
 
   service_account {
-    email  = google_service_account.default.email
+    email = google_service_account.default.email
     scopes = [
       "https://www.googleapis.com/auth/compute.readonly",
-      "https://www.googleapis.com/auth/devstorage.read_only",
+      # read_write, not read_only: Loki runs on the clients and writes its
+      # chunks and index to the Loki bucket with the instance's credentials.
+      # The scope only caps the token; IAM still limits writes to the bucket
+      # the service account is granted (observability module, iam.tf).
+      "https://www.googleapis.com/auth/devstorage.read_write",
       "https://www.googleapis.com/auth/logging.write",
       "https://www.googleapis.com/auth/monitoring.write",
     ]
@@ -67,7 +71,7 @@ resource "google_compute_region_instance_group_manager" "nomad_client" {
   named_port {
     name = "traefikui"
     port = 8081
-  } 
+  }
 
   version {
     name              = "${var.name_prefix}-nomad-client"

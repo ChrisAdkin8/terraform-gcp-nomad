@@ -69,8 +69,9 @@ curl -sf "$${NOMAD_ADDR}/v1/node/$${NODE_ID}/allocations" | jq '[.[] | select(.C
     {
       "targets": ["localhost"],
       "labels": {
-        "__path__": ("/opt/nomad/data/alloc/" + $alloc.ID + "/alloc/logs/" + $task_name + ".stdout.0"),
+        "__path__": ("/opt/nomad/data/alloc/" + $alloc.ID + "/alloc/logs/" + $task_name + ".stdout.*"),
         "job": $alloc.JobID,
+        "namespace": $alloc.Namespace,
         "task": $task_name,
         "alloc_id": $alloc.ID,
         "stream": "stdout"
@@ -79,8 +80,9 @@ curl -sf "$${NOMAD_ADDR}/v1/node/$${NODE_ID}/allocations" | jq '[.[] | select(.C
     {
       "targets": ["localhost"],
       "labels": {
-        "__path__": ("/opt/nomad/data/alloc/" + $alloc.ID + "/alloc/logs/" + $task_name + ".stderr.0"),
+        "__path__": ("/opt/nomad/data/alloc/" + $alloc.ID + "/alloc/logs/" + $task_name + ".stderr.*"),
         "job": $alloc.JobID,
+        "namespace": $alloc.Namespace,
         "task": $task_name,
         "alloc_id": $alloc.ID,
         "stream": "stderr"
@@ -183,8 +185,14 @@ discovery.file "nomad_allocations" {
 // NOMAD LOG COLLECTION (ALL ALLOCATIONS)
 // ============================================================================
 
+// Expand the __path__ globs (task.stdout.*, task.stderr.*) so that files
+// Nomad rotates to .1, .2, ... keep being read, not just .0
+local.file_match "nomad_logs" {
+  path_targets = discovery.file.nomad_allocations.targets
+}
+
 loki.source.file "nomad_logs" {
-  targets    = discovery.file.nomad_allocations.targets
+  targets    = local.file_match.nomad_logs.targets
   forward_to = [loki.process.add_metadata.receiver]
 }
 
@@ -193,6 +201,17 @@ loki.source.file "nomad_logs" {
 // ============================================================================
 
 loki.process "add_metadata" {
+  // Every collector push passes through Traefik, so each one would add an
+  // access-log line that is then collected and pushed again. Drop those.
+  stage.match {
+    selector = "{job=\"traefik\"}"
+
+    stage.drop {
+      expression          = "\"RequestPath\":\"/loki/api/v1/push\""
+      drop_counter_reason = "loki_push_access_log"
+    }
+  }
+
   stage.static_labels {
     values = {
       node       = "{{ env "node.unique.name" }}",

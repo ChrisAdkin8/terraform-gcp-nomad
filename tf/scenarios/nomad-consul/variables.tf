@@ -107,7 +107,7 @@ variable "secondary_datacenter" {
 variable "mgmt_cidr" {
   description = "The CIDR range for management access"
   default     = null
-  type         = string
+  type        = string
 }
 
 variable "short_prefix" {
@@ -153,7 +153,7 @@ variable "create_secondary_consul_cluster" {
 }
 
 variable "create_nomad_jobs" {
-  description = "Whether to create Nomad jobs"
+  description = "Whether to deploy the observability stack (Traefik, Loki, Alloy, Grafana) as Nomad jobs"
   default     = true
   type        = bool
 }
@@ -171,7 +171,7 @@ variable "nomad_client_disk_size" {
 }
 
 variable "create_dns_record" {
-  description = "Flag to determine whether DNS records are created for the traefik API and observability endpoints" 
+  description = "Flag to determine whether DNS records are created for the traefik API and observability endpoints"
   type        = bool
   default     = false
 }

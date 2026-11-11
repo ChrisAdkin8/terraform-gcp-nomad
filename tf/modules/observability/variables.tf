@@ -34,9 +34,14 @@ variable "loki_bucket_name" {
 }
 
 variable "log_retention_days" {
-  description = "Number of days to retain logs in BigQuery"
+  description = "Number of days Loki keeps logs (and how far back they can be searched)"
   type        = number
   default     = 90
+
+  validation {
+    condition     = var.log_retention_days >= 1 && floor(var.log_retention_days) == var.log_retention_days
+    error_message = "log_retention_days must be a whole number of days, at least 1."
+  }
 }
 
 variable "nomad_client_sa_email" {

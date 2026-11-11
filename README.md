@@ -591,21 +591,21 @@ The following components are deployed as Nomad jobs (when `create_nomad_jobs = t
 
 - **Traefik** - Reverse proxy and ingress controller
   - Service discovery via Consul
-  - HTTP (80), HTTPS (443), API (8080), Dashboard (8081)
+  - HTTP entry point for all routed services (8080), dashboard (8081)
   - Regional HTTP load balancers with external IPs
   - Health checks for high availability
 
 - **Loki** - Log aggregation and storage
   - GCS backend for long-term log storage
-  - Retention configurable via `log_retention_days`
+  - Logs kept, and searchable, for `log_retention_days` (module input; the scenario sets 90)
   - HTTP API on port 3100
   - gRPC API on port 9096
 
 - **Grafana** - Visualization and dashboards
   - Pre-configured Loki data source
-  - Default admin password: `admin` (configurable via `grafana_admin_password`)
+  - Admin password generated at deploy time (`terraform output grafana_admin_password`)
   - Port 3000
-  - Custom dashboards for Nomad/Consul metrics
+  - "Nomad Logs Dashboard" provisioned from `nomad-logs-dashboard.json` on every start
 
 - **Alloy Gateway** - Centralized log receiver
   - Single instance receiving logs from all collectors
@@ -614,7 +614,7 @@ The following components are deployed as Nomad jobs (when `create_nomad_jobs = t
 
 - **Alloy Collectors** - Distributed log collection
   - Deployed as Nomad system job (runs on every client)
-  - Collects system logs, Docker logs, and application logs
+  - Collects Nomad task logs (stdout/stderr, including rotated files) and host system logs
   - Forwards to Alloy Gateway
   - Port 12344 for collector endpoints
 
@@ -1213,7 +1213,6 @@ For detailed scenario documentation and troubleshooting, see `tf/scenarios/gke-a
 | `create_secondary_consul_cluster` | bool | `true` | Create secondary Consul cluster |
 | `create_nomad_jobs` | bool | `true` | Deploy Nomad jobs |
 | `create_dns_record` | bool | `false` | Create DNS records |
-| `grafana_admin_password` | string | `admin` | Grafana admin password |
 | `environment` | string | `dev` | Environment name (dev, staging, prod) |
 | `labels` | map(string) | `{}` | Additional labels to apply to all resources |
 | `additional_allowed_cidrs` | list(string) | `[]` | Additional CIDR blocks to allow access |
@@ -1239,7 +1238,6 @@ Default CIDR allocations:
 terraform-gcp-nomad/
 ├── README.md                           # This file
 ├── CHANGELOG.md                        # Version history
-├── OBSERVABILITY.md                    # Observability stack documentation
 ├── LICENCE                             # License file
 ├── Taskfile.yml                        # Task runner configuration
 │
@@ -1357,7 +1355,7 @@ terraform-gcp-nomad/
         │
         ├── observability/              # Grafana/Loki/Alloy stack
         │   ├── main.tf
-        │   ├── dashboard.tf
+        │   ├── nomad-logs-dashboard.json
         │   ├── gcs.tf
         │   ├── iam.tf
         │   ├── variables.tf
@@ -1367,8 +1365,7 @@ terraform-gcp-nomad/
         │       ├── loki.nomad.tpl
         │       ├── grafana.nomad.tpl
         │       ├── gateway.nomad.tpl
-        │       ├── collector.nomad.tpl
-        │       └── prometheus.nomad.tpl
+        │       └── collector.nomad.tpl
         │
         ├── gke-consul-dataplane/       # GKE with Consul dataplane
         │   ├── README.md
@@ -1603,8 +1600,6 @@ The deployment includes a complete logging pipeline:
 | **Loki** | Log aggregation and storage |
 | **Grafana** | Visualization and dashboards |
 | **GCS** | Long-term log storage backend |
-
-For detailed observability documentation, see [OBSERVABILITY.md](OBSERVABILITY.md).
 
 ### Quick Verification
 
