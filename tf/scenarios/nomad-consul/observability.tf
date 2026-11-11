@@ -1,5 +1,13 @@
+# The module gained a count; keep existing deployments' state (and the Loki
+# bucket, which has force_destroy) instead of destroying and recreating it.
+moved {
+  from = module.observability
+  to   = module.observability[0]
+}
+
 module "observability" {
   source = "../../modules/observability"
+  count  = var.create_nomad_jobs ? 1 : 0
 
   providers = {
     nomad = nomad.with_acl_token

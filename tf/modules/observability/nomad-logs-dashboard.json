@@ -85,7 +85,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "sum(count_over_time({source=~\"nomad|nomad-fallback\"} [$__range]))",
+          "expr": "sum(count_over_time({source=~\"nomad\"} [$__range]))",
           "queryType": "instant",
           "refId": "A"
         }
@@ -143,7 +143,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "sum(count_over_time({source=~\"nomad|nomad-fallback\", stream=\"stderr\"} |~ \"(?i)(error|exception|fatal|panic|fail)\" [$__range]))",
+          "expr": "sum(count_over_time({source=~\"nomad\", stream=\"stderr\"} |~ \"(?i)(error|exception|fatal|panic|fail)\" [$__range]))",
           "queryType": "instant",
           "refId": "A"
         }
@@ -201,7 +201,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "count(sum by (job) (count_over_time({source=~\"nomad|nomad-fallback\", job=~\".+\"} [$__range])))",
+          "expr": "count(sum by (job) (count_over_time({source=~\"nomad\", job=~\".+\"} [$__range])))",
           "queryType": "instant",
           "refId": "A"
         }
@@ -259,7 +259,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "count(sum by (node) (count_over_time({source=~\"nomad|nomad-fallback|system\", node=~\".+\"} [$__range])))",
+          "expr": "count(sum by (node) (count_over_time({source=~\"nomad|system\", node=~\".+\"} [$__range])))",
           "queryType": "instant",
           "refId": "A"
         }
@@ -350,7 +350,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "sum by (job) (count_over_time({source=~\"nomad|nomad-fallback\", job=~\"${job:regex}\", namespace=~\"${namespace:regex}\", task=~\"${task:regex}\", stream=~\"${stream:regex}\", node=~\"${node:regex}\"} [$__interval]))",
+          "expr": "sum by (job) (count_over_time({source=~\"nomad\", job=~\"${job:regex}\", namespace=~\"${namespace:regex}\", task=~\"${task:regex}\", stream=~\"${stream:regex}\", node=~\"${node:regex}\"} [$__interval]))",
           "legendFormat": "{{job}}",
           "queryType": "range",
           "refId": "A"
@@ -471,7 +471,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "sum by (stream) (count_over_time({source=~\"nomad|nomad-fallback\", job=~\"${job:regex}\", namespace=~\"${namespace:regex}\", task=~\"${task:regex}\", stream=~\"${stream:regex}\", node=~\"${node:regex}\"} [$__interval]))",
+          "expr": "sum by (stream) (count_over_time({source=~\"nomad\", job=~\"${job:regex}\", namespace=~\"${namespace:regex}\", task=~\"${task:regex}\", stream=~\"${stream:regex}\", node=~\"${node:regex}\"} [$__interval]))",
           "legendFormat": "{{stream}}",
           "queryType": "range",
           "refId": "A"
@@ -521,7 +521,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{source=~\"nomad|nomad-fallback\", job=~\"${job:regex}\", namespace=~\"${namespace:regex}\", task=~\"${task:regex}\", stream=~\"${stream:regex}\", node=~\"${node:regex}\"}",
+          "expr": "{source=~\"nomad\", job=~\"${job:regex}\", namespace=~\"${namespace:regex}\", task=~\"${task:regex}\", stream=~\"${stream:regex}\", node=~\"${node:regex}\"}",
           "queryType": "range",
           "refId": "A"
         }
@@ -567,7 +567,7 @@
                 "type": "loki",
                 "uid": "loki"
               },
-              "expr": "{source=~\"nomad|nomad-fallback\", job=~\"${job:regex}\", namespace=~\"${namespace:regex}\", task=~\"${task:regex}\", stream=\"stderr\", node=~\"${node:regex}\"} |~ \"(?i)(error|exception|fatal|panic|fail)\"",
+              "expr": "{source=~\"nomad\", job=~\"${job:regex}\", namespace=~\"${namespace:regex}\", task=~\"${task:regex}\", stream=\"stderr\", node=~\"${node:regex}\"} |~ \"(?i)(error|exception|fatal|panic|fail)\"",
               "queryType": "range",
               "refId": "A"
             }
@@ -691,7 +691,7 @@
                 "type": "loki",
                 "uid": "loki"
               },
-              "expr": "sum by (namespace) (count_over_time({source=~\"nomad|nomad-fallback\", namespace=~\".+\"} [$__range]))",
+              "expr": "sum by (namespace) (count_over_time({source=~\"nomad\", namespace=~\".+\"} [$__range]))",
               "legendFormat": "{{namespace}}",
               "queryType": "instant",
               "refId": "A"
@@ -752,7 +752,7 @@
                 "type": "loki",
                 "uid": "loki"
               },
-              "expr": "sum by (node) (count_over_time({source=~\"nomad|nomad-fallback\", node=~\".+\"} [$__range]))",
+              "expr": "sum by (node) (count_over_time({source=~\"nomad\", node=~\".+\"} [$__range]))",
               "legendFormat": "{{node}}",
               "queryType": "instant",
               "refId": "A"

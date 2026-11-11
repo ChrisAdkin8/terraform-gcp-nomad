@@ -10,9 +10,22 @@ resource "google_storage_bucket" "loki" {
     enabled = true
   }
 
+  # Loki's compactor enforces log_retention_days itself. This rule is only a
+  # backstop for anything it leaves behind, a week later so the two don't race.
   lifecycle_rule {
     condition {
-      age = var.log_retention_days
+      age = var.log_retention_days + 7
+    }
+    action {
+      type = "Delete"
+    }
+  }
+
+  # The compactor rewrites index files every few minutes; without this,
+  # versioning would keep every superseded copy until the backstop above.
+  lifecycle_rule {
+    condition {
+      days_since_noncurrent_time = 7
     }
     action {
       type = "Delete"

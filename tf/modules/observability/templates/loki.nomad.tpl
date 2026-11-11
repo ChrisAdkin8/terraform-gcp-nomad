@@ -99,7 +99,10 @@ limits_config:
   max_streams_per_user: 10000
   max_global_streams_per_user: 10000
   max_query_length: 721h
-  max_query_lookback: 168h
+  # How long logs are kept and can be searched. The compactor deletes
+  # older chunks; set from log_retention_days in the observability module.
+  retention_period: ${retention_hours}h
+  max_query_lookback: ${retention_hours}h
   max_entries_limit_per_query: 5000
   max_cache_freshness_per_query: 10m
   split_queries_by_interval: 30m
@@ -124,9 +127,6 @@ query_range:
         max_size_mb: 512
         ttl: 24h
 
-table_manager:
-  retention_deletes_enabled: true
-  retention_period: 168h
 
 compactor:
   working_directory: /loki/compactor

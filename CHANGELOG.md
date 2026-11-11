@@ -254,6 +254,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reorganized Customization section to reference comprehensive task commands documentation
 
 ### Fixed
+- **Observability Stack** - Logging pipeline fixes
+  - Nomad clients get the `devstorage.read_write` scope so Loki can write chunks and index to its bucket (the `read_only` scope blocked writes despite the bucket IAM grant)
+  - Traefik's access log drops `Authorization`, `Proxy-Authorization`, `Cookie` and `Set-Cookie`; it is shipped to Loki, so credentials were readable there
+  - Alloy collectors follow rotated task logs (`<task>.stdout.*`, `.stderr.*`), not just `.0`, and tag lines with the Nomad `namespace`
+  - Loki enforces `log_retention_days` (`limits_config.retention_period`, also the search window) instead of a fixed 7-day lookback; the unused `table_manager` block is gone; the bucket's delete rule is now a backstop a week later, and superseded object versions are deleted after 7 days
+  - Grafana provisions the Nomad logs dashboard from a Nomad variable on every start, replacing the one-off `curl` upload (which never re-ran and sent the admin password through Traefik)
+  - Dashboard queries no longer look for the never-produced `source="nomad-fallback"`
+  - `create_nomad_jobs` now controls whether the observability module is deployed (a `moved` block keeps existing state)
+  - Less log noise: Traefik logs at `INFO`, and collector pushes' own access-log lines are dropped
+  - Removed unused pieces: Prometheus, MinIO and HashiCups job templates, Traefik's unrouted OTLP entry point, the duplicate dashboard JSON in the `nomad` module, the unused Grafana provider lock entry, and the ignored `X-Scope-OrgID` header
+  - README corrected (Grafana password, Traefik ports, retention, dashboards, missing `OBSERVABILITY.md`)
 - **Loki Job Template** - Removed unused service account key template block
   - The template was referencing `gcs_service_account_key` which was never set in the Nomad variable
   - Loki now uses Application Default Credentials (ADC) from GCE instance metadata

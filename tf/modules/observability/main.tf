@@ -1,6 +1,6 @@
 resource "nomad_variable" "traefik_consul_token" {
   path = "nomad/jobs/traefik"
-  
+
   items = {
     consul_token = var.consul_token
   }
@@ -15,11 +15,12 @@ resource "nomad_job" "traefik" {
 }
 
 resource "nomad_job" "loki" {
-  jobspec = templatefile("${path.module}/templates/loki.nomad.tpl",  {
+  jobspec = templatefile("${path.module}/templates/loki.nomad.tpl", {
     host_url_suffix = "traefik-${var.datacenter}.${var.project_id}.${var.base_domain}"
+    retention_hours = var.log_retention_days * 24
   })
 
-  depends_on = [ 
+  depends_on = [
     nomad_job.traefik,
     nomad_variable.loki_gcs,
     google_storage_bucket.loki
@@ -53,7 +54,7 @@ resource "null_resource" "wait_for_loki" {
 }
 
 resource "nomad_job" "gateway" {
-  jobspec = templatefile("${path.module}/templates/gateway.nomad.tpl",  {
+  jobspec = templatefile("${path.module}/templates/gateway.nomad.tpl", {
     host_url_suffix = "traefik-${var.datacenter}.${var.project_id}.${var.base_domain}"
   })
 
@@ -64,7 +65,7 @@ resource "nomad_job" "gateway" {
 }
 
 resource "nomad_job" "collector" {
-  jobspec = templatefile("${path.module}/templates/collector.nomad.tpl",  {
+  jobspec = templatefile("${path.module}/templates/collector.nomad.tpl", {
     host_url_suffix = "traefik-${var.datacenter}.${var.project_id}.${var.base_domain}"
   })
 
@@ -82,14 +83,27 @@ resource "nomad_variable" "grafana_admin_password" {
   }
 }
 
+# Dashboards Grafana provisions from files on every start. Kept in a Nomad
+# variable rather than in the jobspec, so the JSON's ${...} and {{...}} are not
+# read as HCL or template syntax. Editing the JSON updates the variable, Nomad
+# re-renders the file, and Grafana picks it up within 30 seconds.
+resource "nomad_variable" "grafana_dashboards" {
+  path = "nomad/jobs/grafana/monitoring"
+
+  items = {
+    nomad_logs = file("${path.module}/nomad-logs-dashboard.json")
+  }
+}
+
 resource "nomad_job" "grafana" {
-  jobspec = templatefile("${path.module}/templates/grafana.nomad.tpl",  {
+  jobspec = templatefile("${path.module}/templates/grafana.nomad.tpl", {
     host_url_suffix = "traefik-${var.datacenter}.${var.project_id}.${var.base_domain}"
   })
 
   depends_on = [
     nomad_job.traefik,
     nomad_job.collector,
-    nomad_variable.grafana_admin_password
+    nomad_variable.grafana_admin_password,
+    nomad_variable.grafana_dashboards
   ]
 }
